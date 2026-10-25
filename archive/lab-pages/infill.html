@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Screen Infill Builder</title>
+  <link rel="icon" href="favicon.png" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="infill.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <img src="lg-logo.svg" alt="LG" />
+      <span class="divider"></span>
+      <span class="title">Screen Infill Builder</span>
+    </div>
+    <div class="header-actions">
+      <button id="toggleGuides" type="button" class="pill" aria-pressed="true" title="Show or hide the corner handles (G)">
+        <svg class="eye-on" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+        <svg class="eye-off" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.9 4.2A10.9 10.9 0 0 1 12 4c6.4 0 10 8 10 8a17.8 17.8 0 0 1-2.2 3.2M6.6 6.6C3.9 8.4 2 12 2 12s3.6 8 10 8a10.6 10.6 0 0 0 5.4-1.6"/><path d="m2 2 20 20"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>
+        <span>Guides</span>
+      </button>
+      <button id="download" type="button" class="pill primary" disabled>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>
+        Download PNG
+      </button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <!-- ── 왼쪽: 장면 · 화면 모서리 · 인필 ─────────────────────── -->
+    <aside class="side left">
+      <div class="side-head">
+        <h2>Setup</h2>
+        <p>Upload a scene, mark the screen's four corners, then drop in a new screen image.</p>
+      </div>
+
+      <section class="group">
+        <p class="group-label">1 · Scene image</p>
+        <label class="upload-box" for="sceneFile">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg>
+          <span id="sceneInfo">Upload scene image</span>
+        </label>
+        <input id="sceneFile" type="file" accept="image/*" hidden />
+      </section>
+
+      <section class="group">
+        <p class="group-label">2 · Screen corners</p>
+        <p class="hint">Click the four corners of the screen on the canvas (any order). Drag a handle to fine-tune.</p>
+        <div class="row">
+          <button id="setCorners" type="button" class="btn ghost" style="flex:1">Set corners</button>
+          <button id="clearCorners" type="button" class="btn ghost">Clear</button>
+        </div>
+        <p class="muted" id="cornerInfo"></p>
+      </section>
+
+      <section class="group">
+        <p class="group-label">3 · Screen image (infill)</p>
+        <label class="upload-box" for="infillFile">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="1.5"/><path d="M8 21h8M12 17v4"/></svg>
+          <span id="infillInfo">Upload screen image</span>
+        </label>
+        <input id="infillFile" type="file" accept="image/*" hidden />
+        <div class="field">
+          <div class="field-row"><span>Fit</span></div>
+          <div class="seg" data-seg="fit">
+            <button type="button" data-v="cover">Cover</button>
+            <button type="button" data-v="stretch">Stretch</button>
+          </div>
+        </div>
+      </section>
+    </aside>
+
+    <!-- ── 가운데: 캔버스 ──────────────────────────────────────── -->
+    <section class="canvas-area">
+      <div id="stage" class="stage empty">
+        <canvas id="comp"></canvas>
+        <div id="overlay" class="overlay">
+          <canvas id="protectView"></canvas>
+          <svg id="quadSvg" preserveAspectRatio="none"><polygon /></svg>
+          <div id="handles"></div>
+          <div id="brushCursor" hidden></div>
+        </div>
+        <label class="drop-hint" for="sceneFile">
+          <strong>Canvas</strong>
+          <span>Upload a scene image to start.</span>
+          <span>Click here or drag a file in.</span>
+        </label>
+      </div>
+      <p id="status" class="status"></p>
+    </section>
+
+    <!-- ── 오른쪽: 색감 맞추기 ─────────────────────────────────── -->
+    <aside class="side right">
+      <div class="side-head">
+        <h2>Edit panel</h2>
+        <p>Shift the scene's color mood toward the new screen image.</p>
+      </div>
+
+      <section class="group">
+        <p class="group-label">Detected colors</p>
+        <div class="swatches">
+          <div class="swatch"><span id="swBg"></span><p>Scene<br /><b id="swBgTxt">—</b></p></div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          <div class="swatch"><span id="swIn"></span><p><span id="swInLabel">Screen</span><br /><b id="swInTxt">—</b></p></div>
+        </div>
+        <div class="row target-row">
+          <label class="check"><input id="targetCustom" type="checkbox" /> Use my own target color</label>
+          <input id="targetColor" type="color" value="#e0262a" />
+        </div>
+        <p class="hint" id="moodHint"></p>
+      </section>
+
+      <section class="group">
+        <p class="group-label">Color match</p>
+        <div class="field">
+          <div class="field-row"><span>Mode</span></div>
+          <div class="seg" data-seg="mode">
+            <button type="button" data-v="palette">Palette</button>
+            <button type="button" data-v="tint">Tint</button>
+            <button type="button" data-v="hue">Hue shift</button>
+          </div>
+          <p class="hint" id="modeHint"></p>
+        </div>
+        <label class="fx-slider"><span>Strength</span><input type="range" min="0" max="100" data-k="strength" /><output></output></label>
+        <div class="palette-only">
+          <label class="fx-slider"><span>Center clear</span><input type="range" min="0" max="100" data-k="centerClear" /><output></output></label>
+          <label class="fx-slider"><span>Floor tint</span><input type="range" min="0" max="100" data-k="floorAmount" /><output></output></label>
+          <label class="fx-slider"><span>Vividness</span><input type="range" min="0" max="100" data-k="vivid" /><output></output></label>
+        </div>
+        <label class="fx-slider"><span>Saturation</span><input type="range" min="-100" max="100" data-k="saturation" /><output></output></label>
+        <label class="check"><input type="checkbox" data-k="protectNeutrals" /> Protect neutrals (whites, greys, highlights)</label>
+      </section>
+
+      <section class="group">
+        <p class="group-label">Screen glow</p>
+        <label class="fx-slider"><span>Strength</span><input type="range" min="0" max="100" data-k="glow" /><output></output></label>
+        <label class="fx-slider"><span>Spread</span><input type="range" min="0" max="100" data-k="glowSpread" /><output></output></label>
+        <p class="hint">Light from the screen spilling onto the wall and furniture around it.</p>
+      </section>
+
+      <section class="group">
+        <p class="group-label">Background &amp; objects</p>
+        <p class="hint">The background takes the full color; objects (stands, props, products) only a little.</p>
+        <label class="fx-slider"><span>Object tint</span><input type="range" min="0" max="100" data-k="objectAmount" /><output></output></label>
+        <button id="detectBg" type="button" class="btn ghost full">Auto-detect background</button>
+        <button id="protectToggle" type="button" class="btn ghost full">Fix with brush</button>
+        <div class="seg" id="protectMode">
+          <button type="button" data-v="erase">Background</button>
+          <button type="button" data-v="paint">Object</button>
+        </div>
+        <label class="fx-slider"><span>Brush</span><input id="protectSize" type="range" min="5" max="300" value="60" /><output></output></label>
+        <button id="protectClear" type="button" class="link" hidden>Treat everything as background</button>
+      </section>
+
+      <section class="group">
+        <button id="resetAll" type="button" class="btn ghost full">Reset color settings</button>
+      </section>
+    </aside>
+  </main>
+
+  <script type="module" src="infill-app.js"></script>
+</body>
+</html>

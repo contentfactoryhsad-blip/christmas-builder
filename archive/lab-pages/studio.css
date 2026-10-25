@@ -1,0 +1,10 @@
+/* Studio Scene Builder 전용 */
+#objView { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0; transition: opacity .15s; }
+.overlay.obj-brushing #objView { opacity: 1; }
+.overlay.obj-brushing { cursor: none; }
+.overlay.obj-brushing .product, .overlay.picking .product { pointer-events: none; }
+.select { height: 36px; padding: 0 10px; border: 1px solid var(--gray-200); border-radius: 8px; background: #fff; font-size: 12px; width: 100%; }
+#moodPanel .seg button.on, #screenPanel .seg button.on, #objMode button.on { background: color-mix(in srgb, var(--brand) 6%, #fff); color: var(--brand); font-weight: 600; }
+.layout-reference, .layout-manual { display: flex; flex-direction: column; gap: 8px; }
+#moodPanel.off > :not(.group-row) { opacity: .4; pointer-events: none; }
+#objToggle.active, #setCorners.active { background: var(--brand); border-color: var(--brand); color: #fff; }

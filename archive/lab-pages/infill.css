@@ -1,0 +1,40 @@
+/* Screen Infill Builder 전용. 공통 무드(폰트·색·레이아웃)는 style.css 를 그대로 쓴다. */
+
+.fx-slider { display: grid; grid-template-columns: 64px 1fr 34px; align-items: center; gap: 8px; font-size: 11px; color: var(--gray-600); }
+.fx-slider output { text-align: right; font-variant-numeric: tabular-nums; color: var(--gray-500); }
+.seg button.on { background: color-mix(in srgb, var(--brand) 6%, #fff); color: var(--brand); font-weight: 600; }
+.btn.ghost.active { background: var(--brand); border-color: var(--brand); color: #fff; }
+
+/* 감지된 색 */
+.swatches { display: flex; align-items: center; gap: 12px; color: var(--gray-400); }
+.swatch { display: flex; align-items: center; gap: 8px; flex: 1; }
+.swatch > span { width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--gray-200); background: var(--gray-100); flex-shrink: 0; }
+.swatch p { margin: 0; font-size: 11px; color: var(--gray-500); line-height: 1.35; }
+.swatch b { color: var(--gray-900); font-weight: 600; }
+
+/* 화면 모서리 */
+#quadSvg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+#quadSvg polygon { fill: rgb(253 49 46 / .08); stroke: var(--brand); stroke-width: 1.5; stroke-dasharray: 6 4; vector-effect: non-scaling-stroke; }
+.handle {
+  position: absolute; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%;
+  background: #fff; border: 2px solid var(--brand); box-shadow: 0 1px 4px rgb(0 0 0 / .35);
+  cursor: grab; touch-action: none; display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 700; color: var(--brand);
+}
+.handle:active { cursor: grabbing; }
+.overlay.picking { cursor: crosshair; }
+.overlay.guides-off #quadSvg, .overlay.guides-off .handle { display: none; }
+
+/* 보호 브러시 */
+#protectView { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0; transition: opacity .15s; }
+.overlay.protecting #protectView { opacity: 1; }
+.overlay.protecting { cursor: none; }
+.overlay.protecting .handle { pointer-events: none; }
+#brushCursor { position: absolute; left: 0; top: 0; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px rgb(0 0 0 / .5); pointer-events: none; transform: translate(-50%, -50%); }
+#brushCursor.erase { border-color: #f87171; }
+
+.target-row { justify-content: space-between; }
+#targetColor { width: 36px; height: 28px; padding: 0; border: 1px solid var(--gray-200); border-radius: 6px; background: #fff; cursor: pointer; }
+#targetColor:disabled { opacity: .35; cursor: default; }
+
+.palette-only { display: flex; flex-direction: column; gap: 10px; }

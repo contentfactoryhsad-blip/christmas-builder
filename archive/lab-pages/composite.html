@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Product Composite Builder</title>
+  <link rel="icon" href="favicon.png" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="lib/productImport.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <img src="lg-logo.svg" alt="LG" />
+      <span class="divider"></span>
+      <span class="title">Product Composite Builder</span>
+    </div>
+    <div class="header-actions">
+      <button id="toggleGuides" type="button" class="pill" aria-pressed="true" title="Show or hide the area guides (G)">
+        <svg class="eye-on" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+        <svg class="eye-off" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.9 4.2A10.9 10.9 0 0 1 12 4c6.4 0 10 8 10 8a17.8 17.8 0 0 1-2.2 3.2M6.6 6.6C3.9 8.4 2 12 2 12s3.6 8 10 8a10.6 10.6 0 0 0 5.4-1.6"/><path d="m2 2 20 20"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>
+        <span>Area guides</span>
+      </button>
+      <button id="download" type="button" class="pill primary">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>
+        Download PNG
+      </button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <!-- ── 왼쪽: 배경 · 제품 수 · 영역 ─────────────────────────── -->
+    <aside class="side left">
+      <div class="side-head">
+        <h2>Setup</h2>
+        <p>Upload a background, set how many products, and draw an area for each.</p>
+      </div>
+
+      <section class="group">
+        <p class="group-label">Background</p>
+        <label class="upload-box" for="bgFile">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg>
+          <span id="bgInfo">Upload background image</span>
+        </label>
+        <input id="bgFile" type="file" accept="image/*" hidden />
+      </section>
+
+      <section class="group">
+        <p class="group-label">Number of Products</p>
+        <div class="stepper">
+          <button id="countMinus" type="button" aria-label="Fewer">−</button>
+          <input id="count" type="number" min="1" max="20" value="1" />
+          <button id="countPlus" type="button" aria-label="More">+</button>
+        </div>
+      </section>
+
+      <section class="group">
+        <p class="group-label">Product Areas</p>
+        <p class="hint">Click Draw, then drag on the canvas. Each product is fitted to the center of its area.</p>
+        <div id="areaList" class="list"></div>
+      </section>
+    </aside>
+
+    <!-- ── 가운데: 캔버스 ──────────────────────────────────────── -->
+    <section class="canvas-area">
+      <div id="stage" class="stage empty">
+        <canvas id="comp"></canvas>
+        <div id="overlay" class="overlay">
+          <canvas id="eraseView"></canvas>
+          <div id="brushCursor" hidden></div>
+        </div>
+        <label class="drop-hint" for="bgFile">
+          <strong>Canvas</strong>
+          <span>Upload a background image to start.</span>
+          <span>Click here or drag a file in.</span>
+        </label>
+      </div>
+      <p id="status" class="status"></p>
+    </section>
+
+    <!-- ── 오른쪽: 제품 이미지 · 배치 ─────────────────────────── -->
+    <aside class="side right">
+      <div class="side-head">
+        <h2>Edit panel</h2>
+        <p>Import each product from an LG.com page, refine the cutout, then place it.</p>
+      </div>
+
+      <section class="group">
+        <p class="group-label">Product Images</p>
+        <div id="productList" class="list"></div>
+      </section>
+
+      <section class="group">
+        <p class="group-label">Placement</p>
+        <div id="placeTabs" class="tabs"></div>
+        <div class="field">
+          <div class="field-row"><span>Size</span><output id="scaleOut">100%</output></div>
+          <input id="scale" type="range" min="20" max="200" value="100" />
+        </div>
+        <button id="resetPos" type="button" class="btn ghost full">Reset size &amp; position</button>
+        <p class="hint">Drag a product on the canvas to move it.</p>
+      </section>
+
+      <section class="group" id="fxPanel">
+        <div class="group-row">
+          <p class="group-label">Shadow &amp; Tone</p>
+          <span class="fx-for">Product <b id="fxFor">1</b></span>
+        </div>
+
+        <div class="field">
+          <div class="field-row"><span>Surface</span></div>
+          <div class="seg" data-seg="surface">
+            <button type="button" data-v="floor">Floor</button>
+            <button type="button" data-v="wall">Wall</button>
+            <button type="button" data-v="both">Floor + Wall</button>
+          </div>
+          <p class="hint" id="surfaceHint"></p>
+        </div>
+
+        <div class="field">
+          <div class="field-row"><span>Shadow direction</span></div>
+          <div class="seg" data-seg="direction">
+            <button type="button" data-v="left">← Left</button>
+            <button type="button" data-v="center">Center</button>
+            <button type="button" data-v="right">Right →</button>
+          </div>
+        </div>
+
+        <div class="fx-card" data-show="floor" data-toggle="contact.on">
+          <label class="fx-head"><input type="checkbox" data-fx="contact.on" /> Contact shadow</label>
+          <label class="fx-slider"><span>Strength</span><input type="range" min="0" max="100" data-fx="contact.strength" /><output></output></label>
+        </div>
+
+        <div class="fx-card" data-show="floor" data-toggle="floor.on">
+          <label class="fx-head"><input type="checkbox" data-fx="floor.on" /> Floor shadow</label>
+          <label class="fx-slider"><span>Strength</span><input type="range" min="0" max="100" data-fx="floor.strength" /><output></output></label>
+          <label class="fx-slider"><span>Softness</span><input type="range" min="0" max="100" data-fx="floor.softness" /><output></output></label>
+          <label class="fx-slider"><span>Length</span><input type="range" min="0" max="100" data-fx="floor.length" /><output></output></label>
+        </div>
+
+        <div class="fx-card" data-show="wall">
+          <p class="fx-head">Wall shadow</p>
+          <label class="fx-slider"><span>Strength</span><input type="range" min="0" max="100" data-fx="wall.strength" /><output></output></label>
+          <label class="fx-slider"><span>Depth</span><input type="range" min="0" max="100" data-fx="wall.depth" /><output></output></label>
+          <label class="fx-slider"><span>Vertical</span><input type="range" min="-50" max="50" data-fx="wall.offsetY" /><output></output></label>
+          <p class="hint">Depth = distance from the wall (product thickness). Vertical moves the shadow up (−) or down (+).</p>
+        </div>
+
+        <div class="fx-card" data-show="floor" data-toggle="reflection.on">
+          <label class="fx-head"><input type="checkbox" data-fx="reflection.on" /> Floor reflection</label>
+          <label class="fx-slider"><span>Opacity</span><input type="range" min="0" max="100" data-fx="reflection.opacity" /><output></output></label>
+          <label class="fx-slider"><span>Length</span><input type="range" min="0" max="100" data-fx="reflection.length" /><output></output></label>
+        </div>
+
+        <div class="fx-card">
+          <p class="fx-head">Tone match</p>
+          <label class="fx-slider"><span>Strength</span><input type="range" min="0" max="100" data-fx="tone.strength" /><output></output></label>
+          <p class="hint">Pulls the product's color and brightness toward the background.</p>
+        </div>
+
+        <div class="fx-card" id="eraserCard">
+          <p class="fx-head">Shadow eraser</p>
+          <button id="eraseToggle" type="button" class="btn ghost full">Paint to erase shadow</button>
+          <div class="seg" id="eraseMode">
+            <button type="button" data-v="erase">Erase</button>
+            <button type="button" data-v="restore">Restore</button>
+          </div>
+          <label class="fx-slider"><span>Brush</span><input id="eraseSize" type="range" min="5" max="200" value="40" /><output></output></label>
+          <button id="eraseClear" type="button" class="link">Clear erased areas</button>
+          <p class="hint">Erased areas stay fixed on the background — move the product and they still block the shadow there.</p>
+        </div>
+
+        <div class="row">
+          <button id="fxReset" type="button" class="btn ghost">Reset</button>
+          <button id="fxApplyAll" type="button" class="btn ghost" style="flex:1">Apply to all products</button>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

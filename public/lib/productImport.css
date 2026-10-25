@@ -1,0 +1,101 @@
+/* 제품 이미지 팝업 (갤러리 · 브러시 · 크롭) 스타일. 접두사 pi- 로 묶어 다른 빌더에 넣어도 섞이지 않게 한다. */
+.pi-backdrop {
+  --pi-accent: #FD312E;
+  --pi-accent-hover: #E22825;
+  --pi-line: #E6E1D6;
+  --pi-muted: #716F6A;
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+  background: rgb(0 0 0 / 0.4);
+  font: 13px/1.45 var(--font-lgei, "LGEI Headline", -apple-system, sans-serif);
+  color: #262626;
+}
+.pi-backdrop.dark { background: rgb(0 0 0 / 0.72); backdrop-filter: blur(3px); }
+.pi-modal { background: #fff; border-radius: 14px; box-shadow: 0 20px 60px rgb(0 0 0 / .3); display: flex; flex-direction: column; overflow: hidden; max-height: 92vh; }
+.pi-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--pi-line); }
+.pi-head strong { font-size: 15px; font-weight: 700; }
+.pi-sub { color: var(--pi-muted); font-size: 11px; margin: 2px 0 0; }
+.pi-x { border: 0; background: none; font-size: 22px; line-height: 1; color: var(--pi-muted); cursor: pointer; padding: 0 4px; }
+.pi-x:hover { color: #1d1d1b; }
+.pi-row { display: flex; gap: 6px; align-items: center; }
+.pi-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 18px; border-top: 1px solid var(--pi-line); }
+.pi-btn { font: inherit; padding: 8px 16px; border-radius: 999px; cursor: pointer; border: 1px solid var(--pi-line); background: #fff; color: #444; }
+.pi-btn { font-weight: 600; }
+.pi-btn.primary { background: var(--pi-accent); border-color: var(--pi-accent); color: #fff; }
+.pi-btn.primary:hover:not(:disabled) { background: var(--pi-accent-hover); border-color: var(--pi-accent-hover); }
+.pi-btn:disabled { opacity: .5; cursor: default; }
+.pi-spin { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--pi-accent); border-top-color: transparent; animation: pi-rot .8s linear infinite; display: inline-block; }
+@keyframes pi-rot { to { transform: rotate(360deg); } }
+.pi-busy { background: #fff; border-radius: 12px; padding: 18px 24px; display: flex; align-items: center; gap: 12px; }
+.pi-busy p { margin: 0; }
+.pi-loading { color: #ddd; padding: 60px; text-align: center; }
+
+/* ── 갤러리 ─────────────────────────────────────── */
+.pi-gallery { width: min(780px, 100%); }
+.pi-body { overflow-y: auto; padding: 18px; }
+.pi-empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 70px 0; color: var(--pi-muted); }
+.pi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+@media (max-width: 600px) { .pi-grid { grid-template-columns: repeat(2, 1fr); } }
+.pi-tile { position: relative; aspect-ratio: 1; padding: 0; border: 1px solid var(--pi-line); border-radius: 8px; background: #FAF9F5; overflow: hidden; cursor: pointer; }
+.pi-tile.cut { border-color: #CBC8C2; }
+.pi-tile:hover { border-color: var(--pi-accent); box-shadow: 0 4px 14px rgb(0 0 0 / .1); }
+.pi-tile img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.pi-dim { position: absolute; left: 0; right: 0; bottom: 0; font-size: 9px; color: #fff; background: rgb(0 0 0 / .45); text-align: center; font-variant-numeric: tabular-nums; }
+.pi-badge { position: absolute; top: 4px; left: 4px; font-size: 8px; font-weight: 600; color: #fff; background: rgb(253 49 46 / .85); padding: 1px 4px; border-radius: 3px; }
+
+/* ── 브러시 ─────────────────────────────────────── */
+.pi-brush { width: min(820px, 100%); }
+.pi-brush-body { display: flex; min-height: 0; flex: 1; overflow: hidden; }
+.pi-brush-canvas-wrap { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; background: #4A4946; overflow: auto; padding: 20px; min-height: 480px; }
+.pi-brush-stage { position: relative; flex-shrink: 0; cursor: none; user-select: none; background: repeating-conic-gradient(#716F6A 0 25%, #5C5B5A 0 50%) 0 0 / 16px 16px; }
+.pi-brush-stage canvas { display: block; touch-action: none; transition: opacity .1s; }
+.pi-cursor { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: none; will-change: transform; }
+.pi-ring { position: absolute; border-radius: 50%; border: 2px solid; box-shadow: 0 0 0 1px rgb(0 0 0 / .5); }
+.pi-arrow { position: absolute; left: 0; top: 0; color: #f87171; }
+.pi-dot { position: absolute; left: -3.5px; top: -3.5px; width: 7px; height: 7px; border-radius: 50%; box-shadow: 0 0 0 1.5px #fff, 0 0 4px rgb(0 0 0 / .6); }
+.pi-glyph { position: absolute; width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 1.5px solid; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; box-shadow: 0 1px 3px rgb(0 0 0 / .35); }
+.pi-orig-badge, .pi-proc-badge { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.pi-orig-badge[hidden], .pi-proc-badge[hidden] { display: none; }
+.pi-orig-badge span, .pi-proc-badge span, .pi-fill-badge { padding: 4px 12px; border-radius: 999px; color: #fff; font-size: 11px; background: rgb(0 0 0 / .55); }
+.pi-fill-badge { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); pointer-events: none; }
+.pi-side { width: 212px; flex-shrink: 0; background: #FAF9F5; border-left: 1px solid var(--pi-line); overflow-y: auto; }
+.pi-side section { padding: 12px 14px; border-bottom: 1px solid var(--pi-line); display: flex; flex-direction: column; gap: 6px; }
+.pi-side section[hidden] { display: none; }
+.pi-label { margin: 0; font-size: 10px; color: var(--pi-muted); text-transform: uppercase; letter-spacing: .05em; }
+.pi-note { margin: 0; font-size: 10px; color: var(--pi-muted); }
+.pi-note[hidden] { display: none; }
+.pi-side input[type=range] { width: 100%; accent-color: var(--pi-accent); }
+.pi-opt { font: inherit; font-size: 12px; text-align: left; padding: 7px 10px; border: 1px solid var(--pi-line); border-radius: 5px; background: #fff; color: #555; cursor: pointer; display: flex; align-items: center; gap: 6px; flex: 1; }
+.pi-opt:disabled { opacity: .4; cursor: default; }
+.pi-opt.on { border-color: #999; background: #F6F3EB; color: #1d1d1b; }
+.pi-opt.erase.on { border-color: #f87171; background: #fef2f2; color: #dc2626; }
+.pi-opt.restore.on { border-color: #34d399; background: #ecfdf5; color: #059669; }
+.pi-ai { margin-left: auto; font-size: 9px; padding: 0 4px; border-radius: 3px; background: rgb(253 49 46 / .15); color: var(--pi-accent); }
+.pi-mini { font: inherit; width: 26px; height: 26px; padding: 0; border: 1px solid var(--pi-line); background: #fff; color: #444; border-radius: 5px; cursor: pointer; }
+.pi-mini:disabled { opacity: .3; }
+
+/* ── 크롭 ───────────────────────────────────────── */
+.pi-crop { width: min(680px, 100%); }
+.pi-crop-view { overflow: hidden; display: flex; align-items: center; justify-content: center; min-height: 460px; padding: 20px; background: repeating-conic-gradient(#5C5B5A 0 25%, #4A4946 0 50%) 0 0 / 24px 24px; }
+.pi-crop-stage { position: relative; user-select: none; }
+.pi-crop-stage img { width: 100%; height: 100%; display: block; pointer-events: none; }
+.pi-crop-frame { position: absolute; border: 2px solid var(--pi-accent); box-shadow: 0 0 0 9999px rgb(0 0 0 / .5); cursor: move; touch-action: none; }
+.pi-h { position: absolute; width: 12px; height: 12px; background: #fff; border: 2px solid var(--pi-accent); border-radius: 2px; }
+.pi-h.nw { left: -7px; top: -7px; cursor: nwse-resize; }
+.pi-h.n  { left: calc(50% - 6px); top: -7px; cursor: ns-resize; }
+.pi-h.ne { right: -7px; top: -7px; cursor: nesw-resize; }
+.pi-h.e  { right: -7px; top: calc(50% - 6px); cursor: ew-resize; }
+.pi-h.se { right: -7px; bottom: -7px; cursor: nwse-resize; }
+.pi-h.s  { left: calc(50% - 6px); bottom: -7px; cursor: ns-resize; }
+.pi-h.sw { left: -7px; bottom: -7px; cursor: nesw-resize; }
+.pi-h.w  { left: -7px; top: calc(50% - 6px); cursor: ew-resize; }
+
+/* ── 올가미 선택 (브러시 에디터) ─────────────────── */
+.pi-sel { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.pi-sel path { fill: none; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.pi-sel .pi-sel-fill { fill: rgb(253 49 46 / .14); }
+.pi-sel .pi-sel-white { stroke: #fff; stroke-width: 1.5; }
+.pi-sel .pi-sel-ants { stroke: #111; stroke-width: 1.5; stroke-dasharray: 5 4; animation: pi-ants .6s linear infinite; }
+@keyframes pi-ants { to { stroke-dashoffset: -9; } }
+.pi-sel .pi-sel-start { fill: #fff; stroke: #111; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.pi-sel .pi-sel-start.hot { fill: var(--pi-accent); }

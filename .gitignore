@@ -1,0 +1,5 @@
+node_modules/
+.DS_Store
+# 원본 이미지(수십 MB)는 레포에 올리지 않는다 — 배포에는 scripts/build-assets.sh 가 구운 public/assets/ 만 쓴다
+source/
+file/

@@ -8,6 +8,15 @@ body.tb { display: flex; flex-direction: column; height: 100vh; overflow: hidden
 .tb-header { position: relative; flex-shrink: 0; gap: 16px; }
 .tb-header .brand { color: inherit; text-decoration: none; border-radius: 6px; transition: opacity .15s; }
 .tb-header .brand:hover { opacity: .7; }
+.tb-head-left { display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+.tb-back {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 14px; border-radius: 999px; border: 1px solid var(--gray-300);
+  background: #fff; font: inherit; font-size: 14px; font-weight: 500; line-height: 20px; color: var(--gray-700);
+  cursor: pointer; transition: border-color .15s, color .15s, opacity .15s;
+}
+.tb-back:hover:not(:disabled) { border-color: var(--brand); color: var(--brand); }
+.tb-back:disabled { opacity: .4; cursor: default; }
 
 .tb-pill {
   display: inline-flex; align-items: center; gap: 6px;

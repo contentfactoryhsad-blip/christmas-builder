@@ -337,6 +337,7 @@ function renderSteps() {
   // 매체 목록은 3 단계(Select Channel)부터 — 그 전에는 Channel List 버튼만
   const gate = $('#channelGate'), body = $('#channelBody');
   if (gate && body) { gate.hidden = state.step >= 2; body.hidden = state.step < 2; }
+  $('#stepBack').disabled = active === 0;
   $('#steps').innerHTML = STEPS.map((label, i) => {
     // 에셋을 고르기 전에는 1 만, 매체를 고르기 전에는 Edit(4) 을 빼고 누를 수 있다
     const why = !STEP_READY[i] ? 'Coming soon' : i > 0 && !state.selectedId ? 'Pick a visual type first' : i === 3 && !state.channel ? 'Pick a channel first' : '';
@@ -376,6 +377,7 @@ function goStep(i) {
     $('#slots')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 }
+$('#stepBack').addEventListener('click', () => { if (state.selectedId && state.step > 0) goStep(state.step - 1); });
 $('#steps').addEventListener('click', e => {
   const btn = e.target.closest('[data-step]');
   if (btn && !btn.disabled) goStep(Number(btn.dataset.step));

@@ -19,11 +19,18 @@
   <!-- 뼈대는 08 black friday/lg-bf-builder 의 Content Banner Builder
        (헤더 / 내비 레일 / 팔레트 / 캔버스 / Edit panel) 를 그대로 옮겼다. -->
   <header class="app-header tb-header">
-    <a class="brand" href="builder.html" aria-label="Home">
-      <img src="lg-logo.svg" alt="LG" />
-      <span class="divider"></span>
-      <span class="title">Christmas Builder</span>
-    </a>
+    <div class="tb-head-left">
+      <!-- 블프 빌더와 같은 Back 알약 — 한 단계 앞으로 (1 단계에서는 꺼진다) -->
+      <button id="stepBack" type="button" class="tb-back" disabled>
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Back</span>
+      </button>
+      <a class="brand" href="builder.html" aria-label="Home">
+        <img src="lg-logo.svg" alt="LG" />
+        <span class="divider"></span>
+        <span class="title">Christmas Builder</span>
+      </a>
+    </div>
 
     <div class="tb-steps" id="steps"></div>
 

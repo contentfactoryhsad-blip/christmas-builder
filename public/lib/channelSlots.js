@@ -6,7 +6,7 @@
  *   fades : KV 를 바탕으로 녹이는 그라데이션 — box 안을 p0 → p1 방향으로 stops 대로 칠한다.
  *           text 표시가 붙은 건 Product Type 라이트의 텍스트 그라데이션 — 다크에서는 안 그린다
  *   rows  : Eyebrow·Headline·Subcopy — Figma 자리에서 시작해 위 줄이 늘면 그만큼 아래로 민다
- *   cta   : stack 이면 카피 아래 Figma 와 같은 간격, 아니면 b 자리 고정 (가로 띠)
+ *   cta   : stack 이면 마지막 보이는 카피 아래 Figma 와 같은 간격 (줄을 끄면 당겨 붙는다), 아니면 b 자리 고정 (가로 띠)
  *   disc  : Disclaimer — 왼쪽 x, 바닥에서 bottom 위, 폭 w. 흰 빛 + 검은 그림자 두 겹 (Figma 효과 그대로, Dark 글자 모드는 반대)
  * 줄 높이는 Figma 와 같이 글자 크기의 106%, CTA 는 100%.
  */
@@ -131,12 +131,15 @@ export function drawSlot(ctx, slot, art, cs, tone = 'light') {
     lastFigmaEnd = r.y + r.h;
     shift = lastEnd - lastFigmaEnd;
   });
+  // 세로로 쌓는 CTA 는 마지막 보이는 줄 아래에 Figma 의 (마지막 줄 → CTA) 간격으로 — 줄을 꺼도 오토레이아웃처럼 당겨 붙는다
+  const lastRow = rows[rows.length - 1];
+  const ctaY = fy => (lastEnd != null && lastRow ? lastEnd + (fy - (lastRow.y + lastRow.h)) : fy + shift);
 
   // CTA — 세로 배치는 카피 아래 Figma 간격, 가로 띠는 고정 자리
   if (slot.cta && show.cta && slot.cta.round) {
     // LG.com 일부 사이즈 — 글자 없는 동그란 화살표 버튼 (흰 테두리)
     const [fx, fy, , fh] = slot.cta.b;
-    const by = slot.cta.stack && lastFigmaEnd != null ? fy + shift : fy;
+    const by = slot.cta.stack ? ctaY(fy) : fy;
     const r = fh / 2, cx = fx + r, cy = by + r;
     ctx.strokeStyle = ink;
     ctx.lineWidth = Math.max(1, fh * 0.03);
@@ -158,7 +161,7 @@ export function drawSlot(ctx, slot, art, cs, tone = 'light') {
     const head = rows.find(r => r.k === 'headline') || rows[0];
     const centered = b.stack && head?.al === 'C';
     const bx = centered ? fx + fw / 2 - bw / 2 : fx;
-    const by = b.stack && lastFigmaEnd != null ? fy + shift : fy;
+    const by = b.stack ? ctaY(fy) : fy;
     ctx.fillStyle = '#FD312E';
     ctx.beginPath();
     ctx.roundRect(bx, by, bw, fh, b.rad);

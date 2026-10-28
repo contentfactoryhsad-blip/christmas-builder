@@ -191,5 +191,18 @@ if [ -d "$SRC/obect" ]; then
   done
 fi
 
+# Product 예시 제품 PNG — source/{tv,wm,ac,ref}.png 를 긴 변 1200 투명 PNG 로. 자리는 builder-app.js 의 PRODUCT_EXAMPLE
+mkdir -p "$OUT/product"
+for n in tv wm ac ref; do
+  [ -f "$SRC/$n.png" ] || continue
+  # 1200 보다 작으면 키우지 않고 그대로
+  if [ "$(size_of "$SRC/$n.png")" -gt 1200 ] || [ "$(height_of "$SRC/$n.png")" -gt 1200 ]; then
+    sips -Z 1200 "$SRC/$n.png" --out "$OUT/product/$n.png" >/dev/null
+  else
+    cp "$SRC/$n.png" "$OUT/product/$n.png"
+  fi
+  echo "baked product $n.png"
+done
+
 printf '[%s\n]\n' "$MANIFEST" > "$OUT/manifest.json"
 echo "manifest: $OUT/manifest.json"

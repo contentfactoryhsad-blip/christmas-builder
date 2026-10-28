@@ -42,6 +42,8 @@ export function newCopyState() {
     copy: { eyebrow: '', headline: '', subcopy: '', cta: '', disclaimer: '', disclaimerMedia: '' },
     show: { eyebrow: true, subcopy: true, cta: true, disclaimer: true, logo: true, indicator: true },
     logoId: null,
+    // 글자 모드 — 세일즈 배너 빌더와 같다. 버튼 이름은 글자색 기준: light = 흰 글자, dark = 검은 글자
+    textMode: 'light',
     icon: {
       kind: 'none', // 'none' | 'solid' | 'line' — Solid 와 Line 은 고른 아이콘을 따로 든다
       color: 'white',
@@ -98,6 +100,16 @@ export function renderCopyPanel(cs, channel) {
     <div>
       <p class="cc-title">Copy</p>
       <p class="cc-sub">Applies to every ${esc(channel.label)} size.</p>
+    </div>
+
+    <div class="cc-field">
+      <span class="cc-label">Text mode</span>
+      <div class="cc-mode">
+        ${['light', 'dark'].map(m => `
+          <button type="button" class="cc-mode-btn${(cs.textMode ?? 'light') === m ? ' on' : ''}" data-text-mode="${m}">
+            <span class="cc-mode-dot ${m}"></span>${m === 'light' ? 'Light' : 'Dark'}
+          </button>`).join('')}
+      </div>
     </div>
 
     ${FIELDS.map(fd => {
@@ -256,7 +268,8 @@ export function bindCopyPanel(root, cs, rerender, onInput = () => {}) {
   root.addEventListener('click', e => {
     const t = e.target.closest('button');
     if (!t || !root.contains(t)) return;
-    if (t.dataset.logo) {
+    if (t.dataset.textMode) { cs.textMode = t.dataset.textMode; rerender(); }
+    else if (t.dataset.logo) {
       const on = (cs.logoId ?? 'white') === t.dataset.logo;
       cs.logoId = on || t.dataset.logo === 'white' ? null : t.dataset.logo;
       rerender();

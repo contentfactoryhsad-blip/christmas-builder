@@ -40,7 +40,7 @@ const ASSET_GROUPS = [
     { id: 'kv-01', label: 'Main Theme', view: { x: 0.2819, y: 0.338, w: 0.4532, h: 0.2266 },
       banner: { src: 'image/kv-light.jpg', thumb: 'image/kv-light-thumb.jpg', w: 3000, h: 3000,
         dark: { src: 'image/kv-dark.jpg', thumb: 'image/kv-dark-thumb.jpg', w: 3000, h: 3000 } },
-      text: { value: 'Christmas', font: 'benton', style: 'cream', x: 0.523, y: 0.448, size: 4.2, width: 116, spacing: 0, depth: 48, shadow: 100, rotate: -8.5, slant: 7 } },
+      text: { value: 'Christmas', font: 'vibes', style: 'gold', x: 0.513, y: 0.4528, size: 4.6, width: 112, spacing: 1, depth: 28, shadow: 60, rotate: -9, slant: 0 } },
   ] },
   // Product Type — 제품을 얹는 바탕 컷. 캡션 = 파일명.
   // full: 가로형 완성 배너 — 가운데를 잘라 보이지 않고 한 장 전체를 원래 비율로 보여 준다 (build-assets.sh 의 bake_full)
@@ -48,7 +48,7 @@ const ASSET_GROUPS = [
   { key: 'product-type', label: 'Product Type', assets: [
     // 선물 상자 트리 위 제품 3종 컷 — 타일은 제품 있는 컷, 캔버스는 제품 없는 컷.
     // 처음 놓을 자리는 제품 있는/없는 컷 차이(가로 0.40~0.58, 바닥 0.538)의 가운데 TV 자리로 잡았다
-    // examples: 미리보기 오른쪽 위 토글로 띄우는 합성 예시 (build-assets.sh 의 bake_example → <id>-ex-<key>.jpg)
+    // examples: 미리보기 오른쪽 위 토글 — 누르면 예시처럼 제품(PRODUCT_EXAMPLE)·오브젝트(OBJECT_EXAMPLE)를 실제 슬롯으로 깐다
     { id: 'pt-01', label: 'Product Type', examples: ['product', 'object'], view: { x: 0.3016, y: 0.37, w: 0.4068, h: 0.2034 }, stage: { cx: 0.5, bottom: 0.538, h: 0.08 } },
   ] },
 ];
@@ -112,9 +112,48 @@ const thumbUrl = a => (a.banner ? `${ASSET_DIR}/${a.banner.thumb}` : `${ASSET_DI
 const previewUrl = a => `${ASSET_DIR}/${a.id}-preview.jpg`;
 const frameUrl = a => `${ASSET_DIR}/${a.id}-frame.jpg`;
 const stageUrl = a => `${ASSET_DIR}/${a.id}-stage.jpg`;
-const exampleUrl = (a, key) => `${ASSET_DIR}/${a.id}-ex-${key}.jpg`;
 /** 합성 예시 토글 — 베이스에 제품·오브젝트를 어떻게 얹는지 보여 주는 완성 컷 */
 const EXAMPLE_LABEL = { product: 'Product', object: 'Object' };
+/**
+ * Object 예시 — 그림을 띄우지 않고 예시 컷(object-light.png)과 같은 자리에 오브젝트 슬롯을 깐다. 그대로 옮기고·키우고·지울 수 있다.
+ * 자리는 예시 컷에 오브젝트 PNG 를 맞대어 잰 뒤, 빌더에서 손본 화면(2026-10-28)에 다시 맞대어 고쳤다 (3000² 바탕, 제품 자리 stage {cx .5, bottom .538, h .08} 기준 — productRect 와 같은 셈)
+ *   scale: 높이 / stage.h, dx·dy: 발끝 가운데가 stage 자리에서 얼마나 떨어졌나
+ *   fx: Shadow 기본값과 다른 것만 (DEFAULT_FX 위에 덮는다)
+ *   erase: 미리 지워 둘 그림자 자리 — [x, y, w, h] 오브젝트 상자 대비 비율 (0,0 = 왼쪽 위, 1 = 상자 폭·높이), 가장자리는 부드럽게
+ */
+/**
+ * Product 예시 — source/{tv,wm,ac,ref}.png (build-assets.sh 가 assets/christmas/product/ 로). 자리는 제품 있는 컷(product-light.png)에
+ * 제품 PNG 를 맞대어 쟀다. 셈·fx·erase 는 OBJECT_EXAMPLE 과 같다. 놓는 순서 = 그리는 순서 (뒤에 놓은 게 위)
+ */
+const PRODUCT_EXAMPLE = [
+  { id: 'ref', label: 'Refrigerator', src: 'product/ref.png', place: { scale: 0.9708, dx: -0.08, dy: -0.0023 },
+    fx: { surface: 'both', direction: 'right', contact: { strength: 78 }, wall: { strength: 98, depth: 13, offsetY: -6 } },
+    // 벽 그림자가 냉장고 뒤 빈 벽으로 삐져나온 부분 — 윗면 위, 왼쪽 옆, 오른쪽 초록 상자와의 틈 (빨간 상자 윗면 높이까지)
+    // 가장자리 흐림이 그림자 띠로 남지 않게 각 영역을 냉장고 안쪽까지 겹친다
+    erase: [[-0.5, -0.5, 2, 0.62], [-0.6, -0.1, 0.72, 1], [0.88, -0.1, 0.32, 0.56]] },
+  { id: 'ac', label: 'Air conditioner', src: 'product/ac.png', place: { scale: 0.2333, dx: -0.0257, dy: -0.0827 },
+    fx: { surface: 'wall', direction: 'right', wall: { strength: 100, depth: 22, offsetY: -24 } },
+    // 벽 그림자가 에어컨 위·아래로 보이는 부분 (에어컨이 납작해서 상자 높이 대비 크게). 가장자리 흐림이 비치지 않게 제품 안쪽까지 겹친다
+    // 아래는 왼쪽부터 폭의 85% 까지만 — 오른쪽 아래 빨간 벽에 지는 그림자는 남긴다
+    erase: [[-0.3, -1.6, 1.6, 1.75], [-0.3, 0.85, 1.15, 1.2]] },
+  { id: 'wm', label: 'Washing machine', src: 'product/wm.png', place: { scale: 0.5625, dx: 0.0605, dy: -0.0447 },
+    fx: { surface: 'both', direction: 'left', wall: { strength: 24, depth: 30, offsetY: -15 } },
+    // 위로 올린 벽 그림자가 세탁기 윗면 위로 보이는 부분
+    erase: [[-0.5, -0.6, 2, 0.62]] },
+  { id: 'tv', label: 'TV', src: 'product/tv.png', place: { scale: 0.4542, dx: 0.0108, dy: -0.0023 },
+    fx: { surface: 'both', direction: 'right', wall: { strength: 96, depth: 22, offsetY: -2 } } },
+];
+
+const OBJECT_EXAMPLE = [
+  { id: 'calligraphy', place: { scale: 0.4375, dx: -0.0255, dy: -0.076 },
+    fx: { surface: 'wall', direction: 'right', wall: { strength: 78, depth: 2, offsetY: -3 } } },
+  { id: 'soldier-toy', place: { scale: 0.845, dx: -0.0867, dy: -0.0016 } },
+  { id: 'ornament3', place: { scale: 0.366, dx: -0.0239, dy: -0.002 } },
+  { id: 'drum', place: { scale: 0.697, dx: 0.0457, dy: -0.0013 },
+    fx: { surface: 'both', direction: 'right', contact: { strength: 99 }, floor: { strength: 44, softness: 23, length: 0 }, wall: { strength: 100, depth: 37, offsetY: -20 } },
+    // 위로 올린 벽 그림자가 드럼 윗면 위로 삐져나온 부분
+    erase: [[-0.3, -0.8, 2, 0.85]] },
+];
 
 /** 캔버스 미리보기 창 — 980:464 박스에 원본 높이의 1/3.3 (build-assets.sh 의 preview 와 같은 값). */
 const PREVIEW_ZOOM = 3.3;
@@ -137,9 +176,14 @@ const CHANNEL_ROWS = [
   ['Rakuten', 'Venngo', 'Perkopolis', 'Awin', 'Data Audience', 'Vase kupony', 'Plna penezenka', 'Tipli', 'Taiwan Affiliate', 'Telus Health'],
 ].map(row => row.map(label => ({ key: label.toLowerCase().replace(/[^a-z0-9]+/g, '-'), label })));
 
-/** 상단 스텝 — 누르면 그 화면으로 간다. 매체를 고르면 Edit(4) 로 넘어가고, Edit 은 매체를 고른 뒤에만 누를 수 있다 */
-const STEPS = ['Select Visual Type', 'Image Edit', 'Select Channel', 'Edit'];
-const STEP_READY = [true, true, true, true];
+// 헤더 Working Files 버튼 링크 — 비어 있으면 흐린 채로 눌리지 않는다
+const WORKING_FILES_URL = 'https://f.io/17EkEgX8';
+
+/** 상단 스텝 — 누르면 그 화면으로 간다. 3 은 매체 고르기와 카피 편집을 같이 한다 */
+const STEPS = ['Select Visual Type', 'Image Edit', 'Select Channel & Edit Copy'];
+const STEP_READY = [true, true, true];
+// 스텝 이름 아래 작은 안내
+const STEP_HINTS = ['Pick an image on the left.', 'Edit the text and image on the right.', 'Pick your channels.'];
 
 /**
  * 오브젝트 — 고르면 오브젝트 슬롯(kind: 'object')이 하나 생겨서 제품과 똑같이 옮기고·키우고·그림자를 준다.
@@ -150,7 +194,8 @@ const STEP_READY = [true, true, true, true];
 const OBJECTS = [
   { id: 'soldier-toy', label: 'Soldier toy', src: 'object/soldier-toy.png', scale: 0.75 },
   { id: 'drum', label: 'Drum', src: 'object/drum.png', scale: 0.67 },
-  { id: 'calligraphy', label: 'Calligraphy', src: 'object/calligraphy.png', scale: 0.45 },
+  // bright: 불러올 때 밝기 배율 — 캘리그라피 금색이 바탕보다 어둡게 가라앉아서 조금 올린다
+  { id: 'calligraphy', label: 'Calligraphy', src: 'object/calligraphy.png', scale: 0.45, bright: 1.15 },
   { id: 'ornament1', label: 'Ornament 1', src: 'object/ornament1.png', scale: 0.4 },
   { id: 'ornament2', label: 'Ornament 2', src: 'object/ornament2.png', scale: 0.4 },
   { id: 'ornament3', label: 'Ornament 3', src: 'object/ornament3.png', scale: 0.4 },
@@ -176,8 +221,20 @@ const EDIT_SECTIONS = [
 ];
 
 /** 배너 컷의 Edit panel — 텍스트 하나만 다룬다. */
+/**
+ * i 동그라미 안내 (블프 빌더의 ? 안내와 같은 쓰임) — 올리면 그림 + 제목 + 설명 창이 뜨고, 누르면 고정된다.
+ * img·video: 안내 그림·영상 경로 (assets/christmas/ 기준, 영상은 소리 없이 반복). 둘 다 없으면 회색 자리만 보인다
+ * 영상 원본은 source/<이름>.mov — ffmpeg 로 폭 640·30fps·소리 없는 mp4 로 줄여 info/ 에 둔다
+ */
+const INFO = {
+  copy: { title: 'Copy', video: 'info/main-theme-text.mp4', img: null, text: 'Type any text you like — in your local language, too. Choose a font, then play freely with size, width, spacing, depth, shadow, rotate and slant.' },
+  product: { title: 'Product image', video: 'info/product-image.mp4', img: null, text: 'Paste an LG.com product URL and the product image is fetched from the page for you. You can then move, resize and add shadows to it freely — on the preview and in the Edit panel on the right.' },
+  object: { title: 'Object', video: 'info/object.mp4', img: null, text: 'Pick any object in the Object section of the Edit panel on the right to add it. You can resize it on the preview, and open Shadow under each one to fine-tune its shadow.' },
+};
+const infoDot = key => `<span class="tb-info" data-info="${key}" role="button" tabindex="0" aria-label="About ${esc(INFO[key].title)}">i</span>`;
+
 const BANNER_SECTIONS = [
-  { key: 'text', title: 'Text', desc: 'Write your own headline on the visual — font, color, depth and angle.' },
+  { key: 'text', title: 'TEXT', info: 'copy', desc: 'Write your own headline on the visual — font, color, depth and angle.' },
 ];
 
 /**
@@ -264,13 +321,15 @@ const newSlot = (i, kind = 'product') => ({
  */
 const state = {
   selectedId: null,
-  example: null, // 미리보기에 띄운 합성 예시 'product' | 'object' — null 이면 편집 중인 합성
   channel: null, // 고른 매체 key (CHANNEL_ROWS) — 한 번 더 누르면 해제
   step: 0, // 상단 스텝 (0 부터) — 에셋을 고르면 1, 매체를 고르면 2
   copy: newCopyState(), // 매체를 고르면 Edit panel 에 뜨는 Copy 값 (lib/channelCopy.js) — 매체를 바꿔도 이어진다
   open: new Set(),
   bg: null,
   slots: [newSlot(0)],
+  guide: false, // 프리뷰에서 고른 제품·오브젝트에 크기 조절 상자를 띄웠나 (배경을 누르면 끈다)
+  fxOpen: false, // 고른 제품·오브젝트 줄 아래 Shadow 드롭다운을 펼쳤나
+  preset: { product: false, object: false }, // 미리보기 오른쪽 위 Product / Object — 켜면 예시 자리대로 슬롯을 깔아 둔 상태
   active: 0,
   erasing: false,
   eraseMode: 'erase',
@@ -339,13 +398,13 @@ function renderSteps() {
   if (gate && body) { gate.hidden = state.step >= 2; body.hidden = state.step < 2; }
   $('#stepBack').disabled = active === 0;
   $('#steps').innerHTML = STEPS.map((label, i) => {
-    // 에셋을 고르기 전에는 1 만, 매체를 고르기 전에는 Edit(4) 을 빼고 누를 수 있다
-    const why = !STEP_READY[i] ? 'Coming soon' : i > 0 && !state.selectedId ? 'Pick a visual type first' : i === 3 && !state.channel ? 'Pick a channel first' : '';
+    // 에셋을 고르기 전에는 1 만 누를 수 있다
+    const why = !STEP_READY[i] ? 'Coming soon' : i > 0 && !state.selectedId ? 'Pick a visual type first' : '';
     return `
     ${i > 0 ? '<div class="tb-step-line"></div>' : ''}
     <button type="button" class="tb-step${i === active ? ' active' : ''}" data-step="${i}"${why ? ` disabled title="${why}"` : ''}>
       <span class="tb-step-num">${i + 1}</span>
-      <span class="tb-step-label">${esc(label)}</span>
+      <span class="tb-step-text"><span class="tb-step-label">${esc(label)}</span><span class="tb-step-hint">${esc(STEP_HINTS[i])}</span></span>
     </button>`;
   }).join('');
 }
@@ -373,9 +432,12 @@ function goStep(i) {
     box?.classList.remove('flash');
     void box?.offsetWidth; // 애니메이션을 다시 걸려고 한 번 읽는다
     box?.classList.add('flash');
-  } else if (i === 3 && SHOW_SLOTS) {
-    $('#slots')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
+}
+if (WORKING_FILES_URL) {
+  const wf = $('#workingFiles');
+  Object.assign(wf, { href: WORKING_FILES_URL, title: '' });
+  wf.removeAttribute('aria-disabled');
 }
 $('#stepBack').addEventListener('click', () => { if (state.selectedId && state.step > 0) goStep(state.step - 1); });
 $('#steps').addEventListener('click', e => {
@@ -452,9 +514,8 @@ function renderCanvas() {
                </div>
              </div>
              ${asset.examples ? `
-               <img class="tb-example" id="exampleImg" alt="" draggable="false" hidden />
                <div class="tb-example-toggle" role="group" aria-label="Example">
-                 ${asset.examples.map(k => `<button type="button" data-example="${k}">${EXAMPLE_LABEL[k]}</button>`).join('')}
+                 ${asset.examples.map(k => `<button type="button" data-example="${k}"${state.preset[k] ? ' class="on"' : ''}>${EXAMPLE_LABEL[k]}</button>`).join('')}
                </div>` : ''}`
           : `${IMAGE_ICON}<span>Artwork coming soon</span>`}
       </div>
@@ -476,8 +537,8 @@ function channelPicker() {
     <div class="tb-channels">
       <p class="tb-channels-label">Channel</p>
       <div class="tb-channel-gate" id="channelGate">
-        <button type="button" class="btn tb-channel-open" data-act="open-channels">Channel List</button>
-        <p class="tb-channels-note">Finish editing the image in the Edit panel on the right, then press this button.</p>
+        <p class="tb-channels-note">The image can’t be changed in later steps. When you finish editing it in the Edit panel on the right, press OK to go on to channel selection.</p>
+        <button type="button" class="btn tb-channel-open" data-act="open-channels">OK</button>
       </div>
       <div class="tb-channels-body" id="channelBody">
       <div class="tb-channels-list">
@@ -576,7 +637,7 @@ function renderEdit() {
         <section class="tb-acc${state.open.has(sec.key) ? ' open' : ''}${PINNED.has(sec.key) ? ' pinned' : ''}" data-key="${sec.key}">
           <button type="button" class="tb-acc-head" aria-expanded="${state.open.has(sec.key)}">
             <span class="tb-acc-text">
-              <span class="tb-acc-title">${esc(sec.title)}</span>
+              <span class="tb-acc-title">${esc(sec.title)}${sec.info ? infoDot(sec.info) : ''}</span>
               <span class="tb-acc-desc">${esc(sec.desc)}</span>
             </span>
             ${CHEVRON}
@@ -589,7 +650,7 @@ function renderEdit() {
     <div class="tb-edit-asset">
       <p class="name">${esc(asset.label)}</p>
       <p class="meta">${esc(group.label)} · ${toneOf(asset.tone).label}${asset.size ? ` · ${asset.size[0]} × ${asset.size[1]}` : ''}</p>
-      ${asset.art ? `<div class="tb-edit-frame"${asset.full ? ` style="aspect-ratio:${asset.size[0]} / ${asset.size[1]}"` : ''}><img src="${frameUrl(asset)}" alt="${esc(asset.label)}" draggable="false" /><canvas id="frameView" hidden></canvas>${asset.examples ? '<img class="tb-example" id="exampleFrame" alt="" draggable="false" hidden />' : ''}</div>` : ''}
+      ${asset.art ? `<div class="tb-edit-frame"${asset.full ? ` style="aspect-ratio:${asset.size[0]} / ${asset.size[1]}"` : ''}><img src="${frameUrl(asset)}" alt="${esc(asset.label)}" draggable="false" /><canvas id="frameView" hidden></canvas></div>` : ''}
     </div>
     ${EDIT_SECTIONS.filter(sec => !sec.hidden).map(sec => `
       <section class="tb-acc${state.open.has(sec.key) ? ' open' : ''}${PINNED.has(sec.key) ? ' pinned' : ''}" data-key="${sec.key}">
@@ -609,17 +670,20 @@ function renderEdit() {
       </section>`).join('')}`;
 }
 
-/** Product & Shadow 박스 안 — studio.html 의 Product Images / Placement / Shadow & Tone 과 같은 구성. */
+/**
+ * Product & Object 박스 안 — Product Image / Object / Placement.
+ * Shadow 패널(#fxPanel)은 하나만 두고, 고른 제품·오브젝트 줄 바로 아래로 옮겨 드롭다운처럼 펼친다 (placeFxPanel)
+ */
 const PRODUCT_PANEL = `
   <div class="tb-acc-item">
-    <p class="tb-acc-item-label">Product Image</p>
+    <p class="tb-acc-item-label">Product image${infoDot('product')}</p>
     <div class="list" id="productList"></div>
     <button type="button" class="btn ghost full" data-act="add-product">+ Add product</button>
     <p class="status" id="status"></p>
   </div>
 
   <div class="tb-acc-item">
-    <p class="tb-acc-item-label">Object</p>
+    <p class="tb-acc-item-label">Object${infoDot('object')}</p>
     <div class="tb-obj-stage" id="objectStage" hidden>
       <p class="tb-obj-head"><span>On stage</span><span class="tb-obj-count" id="objectCount"></span></p>
       <div class="tb-placed" id="objectList"></div>
@@ -631,26 +695,13 @@ const PRODUCT_PANEL = `
           <img src="${ASSET_DIR}/${o.src}" alt="${esc(o.label)}" loading="lazy" draggable="false" />
         </button>`).join('')}
     </div>
-    <p class="hint">Pick an object to add it to the stage — move, resize and shadow it like a product.</p>
+    <p class="hint">Pick an object to add it to the stage. On the preview, drag to move — click once to show the resize box, click the background to hide it.</p>
     <p class="status" id="objectStatus"></p>
   </div>
 
-  <div class="tb-acc-item">
-    <p class="tb-acc-item-label">Placement</p>
-    <div class="tb-place-tabs" id="placeTabs"></div>
-    <div class="field">
-      <div class="field-row"><span>Size</span><output id="scaleOut">100%</output></div>
-      <input id="scale" type="range" min="20" max="300" value="100" />
-    </div>
-    <button type="button" class="btn ghost full" data-act="reset-pos">Reset size &amp; position</button>
-    <p class="hint">Pick a product or object above, or drag it on the canvas to move it.</p>
-  </div>
+  <div id="fxPark" hidden></div>
 
-  <div class="tb-acc-item" id="fxPanel">
-    <div class="group-row">
-      <p class="tb-acc-item-label">Shadow &amp; Tone</p>
-      <span class="fx-for"><b id="fxFor">Product 1</b></span>
-    </div>
+  <div class="tb-fx-drop" id="fxPanel" hidden>
 
     <div class="field">
       <div class="field-row"><span>Surface</span></div>
@@ -691,18 +742,6 @@ const PRODUCT_PANEL = `
       <p class="hint">Depth = distance from the wall (product thickness). Vertical moves the shadow up (−) or down (+).</p>
     </div>
 
-    <div class="fx-card" data-show="floor" data-toggle="reflection.on">
-      <label class="fx-head"><input type="checkbox" data-fx="reflection.on" /> Floor reflection</label>
-      <label class="fx-slider"><span>Opacity</span><input type="range" min="0" max="100" data-fx="reflection.opacity" /><output></output></label>
-      <label class="fx-slider"><span>Length</span><input type="range" min="0" max="100" data-fx="reflection.length" /><output></output></label>
-    </div>
-
-    <div class="fx-card">
-      <p class="fx-head">Tone match</p>
-      <label class="fx-slider"><span>Strength</span><input type="range" min="0" max="100" data-fx="tone.strength" /><output></output></label>
-      <p class="hint">Pulls the product's color and brightness toward the background.</p>
-    </div>
-
     <div class="fx-card" id="eraserCard">
       <p class="fx-head">Shadow eraser</p>
       <button id="eraseToggle" type="button" class="btn ghost full" data-act="erase-toggle">Paint to erase shadow</button>
@@ -726,7 +765,7 @@ const PRODUCT_PANEL = `
 const SCENE_PANEL = `
   <div class="tb-acc-item" id="screenPanel">
     <div class="group-row">
-      <p class="tb-acc-item-label">Screen Area</p>
+      <p class="tb-acc-item-label">Screen area</p>
       <span class="fx-for"><b id="screenFor">Product 1</b></span>
     </div>
     <!-- 화면을 고르는 두 방법 — 지금 쓰는 쪽 카드에 불이 들어온다 -->
@@ -746,7 +785,7 @@ const SCENE_PANEL = `
 
   <div class="tb-acc-item" id="moodPanel">
     <div class="group-row">
-      <p class="tb-acc-item-label">Color Mood</p>
+      <p class="tb-acc-item-label">Color mood</p>
       <!-- 물들이기 전/후 비교 — Before 는 원래 무대, 영역·설정은 그대로 남는다 -->
       <div class="seg tb-ba" data-mseg="on" title="Compare the background before and after coloring">
         <button type="button" data-v="before">Before</button>
@@ -766,7 +805,7 @@ const SCENE_PANEL = `
 /** Text 박스 안 — 글자 / 모양 / 자리 */
 const TEXT_PANEL = `
   <div class="tb-acc-item" id="textPanel">
-    <p class="tb-acc-item-label">Text</p>
+    <p class="tb-acc-item-label">Copy</p>
     <textarea class="tb-text-input" data-t="value" rows="2" spellcheck="false" placeholder="Type your text"></textarea>
     <p class="hint">Press Enter for a new line.</p>
     <div class="field">
@@ -776,23 +815,23 @@ const TEXT_PANEL = `
   </div>
 
   <div class="tb-acc-item">
-    <p class="tb-acc-item-label">Color &amp; Depth</p>
+    <p class="tb-acc-item-label">Color &amp; depth</p>
     <div class="tb-swatches">
       ${TEXT_STYLES.map(s => `<button type="button" class="tb-swatch" data-tstyle="${s.key}" title="${s.label}" style="--a:${s.face[0]};--b:${s.face[2]}"></button>`).join('')}
       <label class="tb-swatch custom" data-tstyle="custom" title="Custom color"><input type="color" data-t="color" /></label>
     </div>
-    <label class="fx-slider"><span>Size</span><input type="range" min="1.5" max="20" step="0.1" data-t="size" /><output></output></label>
-    <label class="fx-slider"><span>Width</span><input type="range" min="50" max="150" data-t="width" /><output></output></label>
-    <label class="fx-slider"><span>Spacing</span><input type="range" min="-10" max="40" data-t="spacing" /><output></output></label>
-    <label class="fx-slider"><span>Depth</span><input type="range" min="0" max="100" data-t="depth" /><output></output></label>
-    <label class="fx-slider"><span>Shadow</span><input type="range" min="0" max="100" data-t="shadow" /><output></output></label>
+    <label class="fx-slider"><span>Size</span><span class="tb-range"><i class="tb-tick"></i><input type="range" min="1.5" max="20" step="0.1" data-t="size" /></span><output></output></label>
+    <label class="fx-slider"><span>Width</span><span class="tb-range"><i class="tb-tick"></i><input type="range" min="50" max="150" data-t="width" /></span><output></output></label>
+    <label class="fx-slider"><span>Spacing</span><span class="tb-range"><i class="tb-tick"></i><input type="range" min="-10" max="40" data-t="spacing" /></span><output></output></label>
+    <label class="fx-slider"><span>Depth</span><span class="tb-range"><i class="tb-tick"></i><input type="range" min="0" max="100" data-t="depth" /></span><output></output></label>
+    <label class="fx-slider"><span>Shadow</span><span class="tb-range"><i class="tb-tick"></i><input type="range" min="0" max="100" data-t="shadow" /></span><output></output></label>
     <p class="hint">Depth stacks the letters for a 3D look; Shadow drops a soft shadow below them.</p>
   </div>
 
   <div class="tb-acc-item">
     <p class="tb-acc-item-label">Position</p>
-    <label class="fx-slider"><span>Rotate</span><input type="range" min="-45" max="45" step="0.5" data-t="rotate" /><output></output></label>
-    <label class="fx-slider"><span>Slant</span><input type="range" min="-30" max="30" data-t="slant" /><output></output></label>
+    <label class="fx-slider"><span>Rotate</span><span class="tb-range"><i class="tb-tick"></i><input type="range" min="-45" max="45" step="0.5" data-t="rotate" /></span><output></output></label>
+    <label class="fx-slider"><span>Slant</span><span class="tb-range"><i class="tb-tick"></i><input type="range" min="-30" max="30" data-t="slant" /></span><output></output></label>
     <button type="button" class="btn ghost full" data-act="text-reset">Reset text</button>
     <p class="hint">Drag the text on the canvas to move it.</p>
   </div>`;
@@ -807,22 +846,19 @@ function selectAsset(id) {
   const ticket = ++selectTicket;
   if (hit?.asset.art && !hit.asset.banner && state.bg?.assetId !== id && $('#canvas .tb-preview')) {
     const { asset } = hit;
-    const example = findAsset(state.selectedId)?.asset.base === asset.base ? state.example : null;
     const urls = [previewUrl(asset), frameUrl(asset)];
-    if (example) urls.push(exampleUrl(asset, example), `${ASSET_DIR}/${asset.id}-ex-${example}-frame.jpg`);
     void Promise.all([prepareStage(asset), ...urls.map(u => loadImage(u).then(img => img.decode()).catch(() => null))])
-      .then(([bg]) => { if (ticket === selectTicket) commitSelect(id, example, bg); });
+      .then(([bg]) => { if (ticket === selectTicket) commitSelect(id, bg); });
     return;
   }
-  commitSelect(id, null, null);
+  commitSelect(id, null);
 }
 let selectTicket = 0;
 
-function commitSelect(id, example, bg) {
+function commitSelect(id, bg) {
   state.selectedId = id;
-  state.example = example;
   if (bg) applyStage(bg);
-  state.step = state.channel ? 3 : 1;
+  state.step = state.channel ? 2 : 1;
   state.erasing = false;
   state.sampling = false;
   state.picking = null;
@@ -836,7 +872,6 @@ function commitSelect(id, example, bg) {
   PINNED.forEach(k => state.open.add(k));
   renderEdit();
   buildProductList();
-  if (example) syncExample();
   update();
   if (hit?.asset.banner) void loadBanner(hit.asset);
   else if (hit?.asset.art) void loadStage(hit.asset);
@@ -875,6 +910,8 @@ function applyStage(bg) {
   if (state.bg) state.slots.forEach(s => { s.eraser = null; });
   const { objects, ...rest } = bg;
   state.bg = rest;
+  // 예시로 미리 지워 둔 자리는 새 바탕에서도 다시 칠한다 (라이트·다크 바탕은 같은 구도)
+  state.slots.forEach(applyPresetErase);
   state.objects = objects;
   state.objVersion++;
 }
@@ -907,7 +944,7 @@ function update() {
   syncText();
   syncHandles();
   syncProductList();
-  syncPlacement();
+  placeFxPanel();
   syncFxPanel();
   syncScene();
   scheduleDraw();
@@ -916,7 +953,10 @@ function update() {
 
 function pct(v, total) { return `${(v / total) * 100}%`; }
 
-/** 캔버스가 그린 제품 위에 얹는 투명 손잡이 — 끌어서 옮긴다. */
+// 크기 조절 상자 네 모서리 — 끌면 맞은편 모서리를 붙든 채 원래 비율로만 커지고 작아진다
+const RESIZE_KNOBS = ['nw', 'ne', 'sw', 'se'].map(c => `<i class="tb-rs" data-c="${c}"></i>`).join('');
+
+/** 캔버스가 그린 제품 위에 얹는 투명 손잡이 — 끌어서 옮긴다. 고른 것에는 크기 조절 상자(.guide)를 띄운다 */
 function syncHandles() {
   const overlay = $('#overlay');
   if (!overlay) return;
@@ -935,6 +975,8 @@ function syncHandles() {
     if (!r) return;
     el.dataset.i = i;
     el.classList.toggle('active', i === state.active);
+    el.classList.toggle('guide', state.guide && i === state.active);
+    if (!el.firstChild) el.innerHTML = RESIZE_KNOBS;
     el.style.setProperty('--c', colorOf(i));
     const { w, h } = state.bg;
     Object.assign(el.style, { left: pct(r.x, w), top: pct(r.y, h), width: pct(r.w, w), height: pct(r.h, h) });
@@ -949,6 +991,7 @@ function syncHandles() {
 function buildProductList() {
   const list = $('#productList');
   if (!list) return;
+  $('#fxPark')?.append($('#fxPanel'));
   const products = slotsOf('product');
   list.innerHTML = products.map(i => state.slots[i]).map((slot, n) => {
     const i = products[n];
@@ -974,6 +1017,7 @@ function buildProductList() {
         </div>
         <p class="muted meta"></p>
       </div>
+      ${SHADOW_HEAD}
     </div>`;
   }).join('');
 
@@ -985,12 +1029,38 @@ function buildProductList() {
   $('#objectLibNote').textContent = placed.length >= MAX_OBJECTS ? `Max ${MAX_OBJECTS}` : '';
   $('#objectList').innerHTML = placed.map((i, n) => `
     <div class="tb-placed-item" data-i="${i}">
-      <button type="button" class="tb-placed-pick" data-tab="${i}" title="${esc(state.slots[i].object.label)}">
-        <img src="${ASSET_DIR}/${state.slots[i].object.src}" alt="${esc(state.slots[i].object.label)}" draggable="false" />
-        <span class="tag" style="--c:${colorOf(i)}">${n + 1}</span>
-      </button>
-      <button type="button" class="tb-placed-remove" data-act="drop-object" title="Remove">×</button>
+      <div class="tb-placed-row">
+        <button type="button" class="tb-placed-pick" data-tab="${i}" title="${esc(state.slots[i].object.label)}">
+          <img src="${ASSET_DIR}/${state.slots[i].object.src}" alt="${esc(state.slots[i].object.label)}" draggable="false" />
+          <span class="tag" style="--c:${colorOf(i)}">${n + 1}</span>
+        </button>
+        <span class="tb-placed-name">${esc(state.slots[i].object.label)}</span>
+        <button type="button" class="tb-placed-remove" data-act="drop-object" title="Remove">×</button>
+      </div>
+      ${SHADOW_HEAD}
     </div>`).join('');
+  placeFxPanel();
+}
+
+/** 제품·오브젝트 줄 아래 Shadow 드롭다운 머리 — 누르면 그 줄을 고르고 #fxPanel 을 그 아래로 펼친다 */
+const SHADOW_HEAD = `<button type="button" class="tb-fx-head" data-act="fx-open"><span>Shadow</span>${CHEVRON}</button><div class="tb-fx-slot"></div>`;
+
+/**
+ * Shadow 패널을 고른 줄 아래로 옮긴다. 줄 목록을 다시 만들기 전에는 박스 끝 자리(#fxPark)로 빼 둬야 같이 지워지지 않는다
+ * state.fxOpen 이면 고른 슬롯(state.active)의 줄에서 펼친다
+ */
+function placeFxPanel() {
+  const panel = $('#fxPanel');
+  if (!panel) return;
+  const row = document.querySelector(`.product-row[data-i="${state.active}"], .tb-placed-item[data-i="${state.active}"]`);
+  document.querySelectorAll('.tb-fx-head').forEach(h => {
+    const open = state.fxOpen && h.closest('[data-i]') === row;
+    h.classList.toggle('open', open);
+    h.setAttribute('aria-expanded', open);
+  });
+  const home = state.fxOpen && row ? row.querySelector('.tb-fx-slot') : $('#fxPark');
+  if (panel.parentElement !== home) home.append(panel);
+  panel.hidden = !(state.fxOpen && row);
 }
 
 function syncProductList() {
@@ -1008,29 +1078,6 @@ function syncProductList() {
   const add = $('[data-act="add-product"]');
   if (add) add.disabled = slotsOf('product').length >= MAX_PRODUCTS;
   document.querySelectorAll('.tb-placed-item').forEach(el => el.classList.toggle('on', Number(el.dataset.i) === state.active));
-}
-
-function syncPlacement() {
-  const tabs = $('#placeTabs');
-  if (!tabs) return;
-  // 하나뿐이면 탭은 고를 게 없다. 제품 줄 / 오브젝트 줄로 나눠 종류별 번호를 단다
-  tabs.hidden = state.slots.length < 2;
-  tabs.innerHTML = ['product', 'object'].map(kind => {
-    const idx = slotsOf(kind);
-    if (!idx.length) return '';
-    return `
-      <div class="tb-tab-row">
-        <span class="tb-tab-kind">${KIND_LABEL[kind]}</span>
-        <div class="tabs">
-          ${idx.map((i, n) => `
-            <button type="button" class="tab${i === state.active ? ' on' : ''}${state.slots[i].product ? '' : ' empty'}" data-tab="${i}"
-              style="--c:${colorOf(i)}" title="${KIND_LABEL[kind]} ${n + 1}${state.slots[i].product ? '' : ' (empty)'}">${n + 1}</button>`).join('')}
-        </div>
-      </div>`;
-  }).join('');
-  const s = state.slots[state.active].place.scale;
-  $('#scale').value = Math.round(s * 100);
-  $('#scaleOut').textContent = `${Math.round(s * 100)}%`;
 }
 
 // ── 합성 그리기 ───────────────────────────────────────────
@@ -1086,6 +1133,12 @@ function paint(ctx) {
 // ── 배너 텍스트 ───────────────────────────────────────────
 
 /** 지금 고른 배너 컷의 텍스트 설정 (배너가 아니면 null) */
+/** 지금 Main Theme 의 글자 기본값 하나 (Reset text 가 돌아가는 값) */
+function textDefault(k) {
+  const hit = findAsset(state.selectedId);
+  return hit?.asset.banner ? newText(hit.asset)[k] : null;
+}
+
 function activeText() {
   const hit = findAsset(state.selectedId);
   return hit?.asset.banner ? state.texts[hit.asset.base] : null;
@@ -1190,7 +1243,12 @@ function syncText() {
       const v = t[input.dataset.t];
       // 입력 중인 칸은 건드리지 않는다 — 커서가 튀지 않게
       if (document.activeElement !== input && String(input.value) !== String(v)) input.value = v;
-      if (input.type === 'range') input.nextElementSibling.textContent = v;
+      if (input.type === 'range') {
+        input.closest('.fx-slider').querySelector('output').textContent = v;
+        // 기본값 자리 — 세로 막대
+        const d = textDefault(input.dataset.t);
+        input.parentElement.querySelector('.tb-tick').style.setProperty('--p', (d - input.min) / (input.max - input.min));
+      }
     });
     panel.querySelectorAll('[data-tstyle]').forEach(b => b.classList.toggle('on', b.dataset.tstyle === t.style));
     panel.querySelector('.tb-swatch.custom').style.setProperty('--c', t.color);
@@ -1269,6 +1327,7 @@ async function runImport(i, flow, keep) {
     slot.product = { ...out, img, meta: out.meta ?? keep?.meta, images: out.images ?? keep?.images };
     // 제품 사진이 바뀌었으니 화면 영역의 색도 새 사진에서 다시 읽는다
     if (slot.screen.quadN) sampleQuad(slot);
+    applyPresetErase(slot);
     state.active = i;
     update();
     const m = slot.product.meta;
@@ -1283,12 +1342,47 @@ async function runImport(i, flow, keep) {
 /**
  * 오브젝트 슬롯을 하나 더 만들어 넣는다. 누끼·크롭 팝업 없이 투명 여백만 자른다.
  */
-function placeObject(o) {
+/** Product 예시 제품 하나를 n 번째 제품 칸으로 깐다 — 업로드한 제품과 똑같이 옮기고·키우고·그림자를 준다 */
+function placePresetProduct(ex, n) {
+  const slot = newSlot(n);
+  Object.assign(slot.place, ex.place);
+  slot.presetErase = ex.erase || null;
+  if (ex.fx) for (const [k, v] of Object.entries(ex.fx)) slot.fx[k] = v && typeof v === 'object' ? { ...slot.fx[k], ...v } : v;
+  // 제품 칸은 오브젝트보다 앞에 둔다 (목록·그리는 순서)
+  const at = slotsOf('product').length;
+  state.slots.splice(at, 0, slot);
+  buildProductList();
+  update();
+  runImport(at, async () => {
+    const res = await fetch(`${ASSET_DIR}/${ex.src}`);
+    if (!res.ok) throw new Error(`Product load failed (${res.status})`);
+    const original = await blobToDataUrl(await res.blob());
+    const t = await trimTransparent(original);
+    return { original, brushed: original, cropRect: null, src: t.dataUrl, w: t.width, h: t.height, meta: { name: ex.label, model: 'Example' } };
+  });
+}
+
+/** PNG 밝기를 k 배로 (투명은 그대로) */
+async function brighten(dataUrl, k) {
+  const img = await loadImage(dataUrl);
+  const c = document.createElement('canvas');
+  c.width = img.naturalWidth; c.height = img.naturalHeight;
+  const ctx = c.getContext('2d');
+  ctx.filter = `brightness(${k})`;
+  ctx.drawImage(img, 0, 0);
+  return c.toDataURL('image/png');
+}
+
+function placeObject(o, place, fx, erase) {
   const n = slotsOf('object').length;
   if (n >= MAX_OBJECTS) return setStatus(`Up to ${MAX_OBJECTS} objects — remove one first.`, true, 'object');
   const slot = newSlot(n, 'object');
   slot.object = o;
   slot.place.scale = o.scale;
+  if (place) Object.assign(slot.place, place);
+  slot.presetErase = erase || null;
+  // fx 는 한 겹 깊이까지 덮는다 (wall: {…} 처럼 묶음 안의 값만 바꿔도 나머지는 기본값)
+  if (fx) for (const [k, v] of Object.entries(fx)) slot.fx[k] = v && typeof v === 'object' ? { ...slot.fx[k], ...v } : v;
   state.slots.push(slot);
   const i = state.slots.length - 1;
   state.active = i;
@@ -1297,7 +1391,8 @@ function placeObject(o) {
   runImport(i, async () => {
     const res = await fetch(`${ASSET_DIR}/${o.src}`);
     if (!res.ok) throw new Error(`Object load failed (${res.status})`);
-    const original = await blobToDataUrl(await res.blob());
+    let original = await blobToDataUrl(await res.blob());
+    if (o.bright) original = await brighten(original, o.bright);
     const t = await trimTransparent(original);
     return { original, brushed: original, cropRect: null, src: t.dataUrl, w: t.width, h: t.height, meta: { name: o.label, model: 'Object' } };
   });
@@ -1323,7 +1418,6 @@ function syncFxPanel() {
   const panel = $('#fxPanel');
   if (!panel) return;
   const fx = activeFx();
-  $('#fxFor').textContent = slotLabel(state.active);
   panel.querySelectorAll('[data-seg]').forEach(seg => {
     seg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === fx[seg.dataset.seg]));
   });
@@ -1353,6 +1447,21 @@ function syncFxPanel() {
 }
 
 // ── 그림자 지우개 ─────────────────────────────────────────
+
+/** 예시 오브젝트의 미리 지울 자리(slot.presetErase)를 지우개 캔버스에 칠한다 — 지금 놓인 상자 기준 */
+function applyPresetErase(slot) {
+  if (!slot.presetErase || !slot.product || !state.bg) return;
+  const r = productRect(slot);
+  if (!r) return;
+  const c = document.createElement('canvas');
+  c.width = state.bg.w;
+  c.height = state.bg.h;
+  const ctx = c.getContext('2d');
+  ctx.filter = `blur(${Math.round(r.h * 0.06)}px)`;
+  ctx.fillStyle = '#000';
+  slot.presetErase.forEach(([x, y, w, h]) => ctx.fillRect(r.x + x * r.w, r.y + y * r.h, w * r.w, h * r.h));
+  slot.eraser = c;
+}
 
 /** 활성 제품의 지우개 캔버스 (없으면 만든다). */
 function activeEraser() {
@@ -1800,8 +1909,10 @@ editBody.addEventListener('click', e => {
     case 'change':
       runImport(i, () => importFromUrl(slot.url, { images: slot.product?.images }), slot.product);
       break;
-    case 'reset-pos':
-      Object.assign(slot.place, newSlot(kindNo(i) - 1).place, slot.object ? { scale: slot.object.scale } : {});
+    case 'fx-open':
+      // 같은 줄을 다시 누르면 접는다, 다른 줄이면 그 줄을 고르고 펼친다
+      state.fxOpen = !(state.fxOpen && state.active === i);
+      state.active = i;
       update();
       break;
     case 'fx-reset':
@@ -1864,16 +1975,30 @@ editBody.addEventListener('input', e => {
     const tx = activeText();
     const k = t.dataset.t;
     tx[k] = t.type === 'range' ? Number(t.value) : t.value;
+    // 기본값 막대 근처(폭의 2%)에 오면 기본값에 딱 붙인다 — 움직여도 원래 값으로 쉽게 돌아오게
+    if (t.type === 'range') {
+      const d = textDefault(k);
+      if (d != null && Math.abs(tx[k] - d) <= (t.max - t.min) * 0.02) { tx[k] = d; t.value = d; }
+    }
     if (k === 'color') tx.style = 'custom';
     if (k === 'font' || k === 'value') ensureFont(tx);
     update();
     return;
   }
-  if (t.id === 'scale') { state.slots[state.active].place.scale = Number(t.value) / 100; update(); return; }
   if (t.id === 'eraseSize') { state.eraseSize = Number(t.value); update(); return; }
   if (t.dataset.m) { state.mood[t.dataset.m] = Number(t.value); update(); return; }
   const path = t.dataset.fx;
   if (path) { setPath(activeFx(), path, t.type === 'checkbox' ? t.checked : Number(t.value)); update(); }
+});
+
+// 글자 슬라이더를 더블클릭하면 그 값만 기본값으로
+editBody.addEventListener('dblclick', e => {
+  const t = e.target.closest('input[type=range][data-t]');
+  const d = t && textDefault(t.dataset.t);
+  if (d == null || !activeText()) return;
+  activeText()[t.dataset.t] = d;
+  t.value = d;
+  update();
 });
 
 editBody.addEventListener('change', async e => {
@@ -1912,8 +2037,8 @@ canvasEl.addEventListener('click', e => {
   if (!btn) return;
   state.channel = state.channel === btn.dataset.channel ? null : btn.dataset.channel;
   canvasEl.querySelectorAll('[data-channel]').forEach(b => b.classList.toggle('on', b.dataset.channel === state.channel));
-  // 고르면 4 (Edit), 풀면 3 (Select Channel) 에 머문다
-  state.step = state.channel ? 3 : 2;
+  // 고르든 풀든 3 (Select Channel & Edit Copy) 에 머문다
+  state.step = 2;
   renderSteps();
   renderEdit();
   buildProductList();
@@ -1924,23 +2049,27 @@ canvasEl.addEventListener('click', e => {
 canvasEl.addEventListener('click', e => {
   const btn = e.target.closest('[data-example]');
   if (!btn) return;
-  state.example = state.example === btn.dataset.example ? null : btn.dataset.example;
-  syncExample();
+  togglePreset(btn.dataset.example);
 });
 
-function syncExample() {
-  const img = $('#exampleImg');
-  const asset = findAsset(state.selectedId)?.asset;
-  if (!img || !asset) return;
-  const frame = $('#exampleFrame');
-  if (state.example) {
-    img.src = exampleUrl(asset, state.example);
-    if (frame) frame.src = `${ASSET_DIR}/${asset.id}-ex-${state.example}-frame.jpg`;
-  }
-  img.hidden = !state.example;
-  if (frame) frame.hidden = !state.example;
-  canvasEl.querySelectorAll('[data-example]').forEach(b => b.classList.toggle('on', b.dataset.example === state.example));
+/**
+ * Product / Object 예시 — 켜면 그 종류 슬롯을 비우고 예시 자리대로 깔고, 끄면 그 종류를 다 거둔다 (다른 종류는 그대로).
+ * 제품을 다 거두면 빈 제품 칸 하나를 남긴다 (링크·업로드를 넣을 자리)
+ */
+function togglePreset(kind) {
+  const on = !state.preset[kind];
+  state.slots = state.slots.filter(sl => sl.kind !== kind);
+  // 예시 제품을 깔지 않을 때는 빈 제품 칸이 늘 하나는 있게
+  if (!(kind === 'product' && on) && !slotsOf('product').length) state.slots.unshift(newSlot(0));
+  state.active = 0;
+  state.preset[kind] = on;
+  setStatus('', false, kind);
+  if (on && kind === 'object') OBJECT_EXAMPLE.forEach(ex => placeObject(OBJECTS.find(o => o.id === ex.id), ex.place, ex.fx, ex.erase));
+  else if (on) PRODUCT_EXAMPLE.forEach((ex, n) => placePresetProduct(ex, n));
+  else { buildProductList(); update(); }
+  canvasEl.querySelector(`[data-example="${kind}"]`)?.classList.toggle('on', on);
 }
+
 // 배너 텍스트 끌기 — 자리는 바탕 대비 비율. 2 단계(Image Edit)에서만 — 3 단계부터는 자리가 고정된다
 canvasEl.addEventListener('pointerdown', e => {
   const box = e.target.closest('#textBox');
@@ -1989,14 +2118,32 @@ canvasEl.addEventListener('pointerdown', e => {
     paintEraser(p, p);
     return;
   }
+  const knob = e.target.closest('.tb-rs');
+  if (knob) {
+    e.preventDefault();
+    overlay.setPointerCapture(e.pointerId);
+    const i = Number(knob.parentElement.dataset.i);
+    const r = productRect(state.slots[i]);
+    const c = knob.dataset.c;
+    // 맞은편 모서리 (배경 픽셀) — 이 점을 붙든 채 키운다
+    const anchor = { x: c.includes('w') ? r.x + r.w : r.x, y: c.includes('n') ? r.y + r.h : r.y };
+    const p = toBg(e);
+    gesture = { kind: 'scale', i, c, anchor, d0: Math.hypot(p.x - anchor.x, p.y - anchor.y), s0: state.slots[i].place.scale };
+    return;
+  }
   const target = e.target.closest('.product');
-  if (!target) return;
+  // 빈 바탕을 누르면 크기 조절 상자를 끈다
+  if (!target) {
+    if (state.guide) { state.guide = false; update(); }
+    return;
+  }
   e.preventDefault();
   overlay.setPointerCapture(e.pointerId);
   const i = Number(target.dataset.i);
   const { dx, dy } = state.slots[i].place;
   gesture = { kind: 'move', i, from: toBg(e), dx, dy };
   state.active = i;
+  state.guide = true;
   update();
 });
 
@@ -2017,6 +2164,21 @@ canvasEl.addEventListener('pointermove', e => {
     gesture.last = p;
     return;
   }
+  if (gesture.kind === 'scale') {
+    // 맞은편 모서리에서 손까지 거리 비로 키운다 — 가로세로 같은 비율
+    const { i, c, anchor, d0, s0 } = gesture;
+    const slot = state.slots[i];
+    const st = findAsset(state.selectedId).asset.stage;
+    const { w: W, h: H } = state.bg;
+    const scale = Math.min(3, Math.max(0.1, s0 * Math.hypot(p.x - anchor.x, p.y - anchor.y) / Math.max(1, d0)));
+    const h = st.h * H * scale;
+    const w = h * (slot.product.w / slot.product.h);
+    const x = c.includes('w') ? anchor.x - w : anchor.x;
+    const y = c.includes('n') ? anchor.y - h : anchor.y;
+    Object.assign(slot.place, { scale, dx: (x + w / 2) / W - st.cx, dy: (y + h) / H - st.bottom });
+    update();
+    return;
+  }
   // 위치는 배경 대비 비율로 — 다른 에셋으로 바꿔도 같은 자리에 선다
   const place = state.slots[gesture.i].place;
   place.dx = gesture.dx + (p.x - gesture.from.x) / state.bg.w;
@@ -2025,7 +2187,7 @@ canvasEl.addEventListener('pointermove', e => {
 });
 
 canvasEl.addEventListener('pointerup', () => {
-  const moved = gesture?.kind === 'move';
+  const moved = gesture?.kind === 'move' || gesture?.kind === 'scale';
   if (gesture?.kind === 'corner') {
     const slot = state.slots[gesture.i];
     slot.screen.method = 2; // 손으로 고친 영역
@@ -2040,7 +2202,59 @@ canvasEl.addEventListener('pointerup', () => {
 });
 canvasEl.addEventListener('pointerleave', () => { const c = $('#brushCursor'); if (c) c.hidden = true; }, true);
 
+// i 안내 창 — 하나를 body 에 두고 아이콘 옆에 띄운다 (Edit panel 은 넘치면 잘려서 그 안에 못 둔다)
+const infoPop = document.createElement('div');
+infoPop.className = 'tb-info-pop';
+infoPop.hidden = true;
+document.body.append(infoPop);
+let infoPinned = null;
+function showInfo(dot) {
+  const info = INFO[dot.dataset.info];
+  if (!info) return;
+  infoPop.innerHTML = `
+    <div class="tb-info-img${info.video ? ' video' : ''}">${info.video
+      ? `<video src="${ASSET_DIR}/${info.video}" autoplay muted loop playsinline></video>`
+      : info.img ? `<img src="${ASSET_DIR}/${info.img}" alt="" draggable="false" />` : ''}</div>
+    <p class="tb-info-title">${esc(info.title)}</p>
+    <p class="tb-info-text">${esc(info.text)}</p>`;
+  infoPop.hidden = false;
+  placeInfo(dot);
+  // 영상은 크기를 읽은 뒤에야 창 높이가 정해진다 — 그때 한 번 더 자리를 잡는다
+  infoPop.querySelector('video')?.addEventListener('loadedmetadata', () => placeInfo(dot), { once: true });
+}
+function placeInfo(dot) {
+  // 아이콘 아래, 넘치면 위로. 화면 오른쪽 끝을 넘지 않게
+  const r = dot.getBoundingClientRect();
+  const w = infoPop.offsetWidth, h = infoPop.offsetHeight;
+  const left = Math.max(12, Math.min(r.left - 12, innerWidth - w - 12));
+  const top = r.bottom + 8 + h > innerHeight - 12 ? r.top - 8 - h : r.bottom + 8;
+  Object.assign(infoPop.style, { left: `${left}px`, top: `${Math.max(12, top)}px` });
+}
+function hideInfo() { infoPop.hidden = true; infoPinned = null; }
+document.addEventListener('mouseover', e => {
+  const dot = e.target.closest('.tb-info');
+  if (dot && !infoPinned) showInfo(dot);
+});
+document.addEventListener('mouseout', e => {
+  const dot = e.target.closest('.tb-info');
+  if (dot && !infoPinned && !dot.contains(e.relatedTarget)) infoPop.hidden = true;
+});
+// 누르면 고정, 다시 누르거나 바깥을 누르면 닫는다. 아코디언 머리 안에 있어도 머리는 안 눌리게
+document.addEventListener('click', e => {
+  const dot = e.target.closest('.tb-info');
+  if (dot) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (infoPinned === dot) return hideInfo();
+    infoPinned = dot;
+    showInfo(dot);
+    return;
+  }
+  if (infoPinned && !infoPop.contains(e.target)) hideInfo();
+}, true);
+
 document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !infoPop.hidden) hideInfo();
   if (e.key !== 'Escape' || document.querySelector('.pi-backdrop')) return;
   if (state.erasing) setErasing(false);
   if (state.picking !== null) { state.picking = null; state.pickPts = []; update(); }

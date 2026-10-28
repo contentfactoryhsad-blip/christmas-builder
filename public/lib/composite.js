@@ -28,7 +28,7 @@ export const DEFAULT_FX = {
   floor: { on: true, strength: 45, softness: 50, length: 30 },
   wall: { strength: 40, depth: 30, offsetY: 0 },   // offsetY: −50(위) ~ +50(아래)
   reflection: { on: false, opacity: 25, length: 30 },
-  tone: { strength: 40 },
+  tone: { strength: 0 },            // 톤 매치는 쓰지 않는다 (패널에서 뺐다)
 };
 
 export const cloneFx = (fx) => JSON.parse(JSON.stringify(fx));

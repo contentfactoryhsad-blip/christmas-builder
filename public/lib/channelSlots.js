@@ -7,7 +7,7 @@
  *           text 표시가 붙은 건 Product Type 라이트의 텍스트 그라데이션 — 다크에서는 안 그린다
  *   rows  : Eyebrow·Headline·Subcopy — Figma 자리에서 시작해 위 줄이 늘면 그만큼 아래로 민다
  *   cta   : stack 이면 카피 아래 Figma 와 같은 간격, 아니면 b 자리 고정 (가로 띠)
- *   disc  : Disclaimer — 왼쪽 x, 바닥에서 bottom 위, 폭 w. 흰 빛 + 검은 그림자 두 겹 (Figma 효과 그대로)
+ *   disc  : Disclaimer — 왼쪽 x, 바닥에서 bottom 위, 폭 w. 흰 빛 + 검은 그림자 두 겹 (Figma 효과 그대로, Dark 글자 모드는 반대)
  * 줄 높이는 Figma 와 같이 글자 크기의 106%, CTA 는 100%.
  */
 import { SLOT_DATA } from './channelSlotData.js';
@@ -78,6 +78,8 @@ export function drawSlot(ctx, slot, art, cs, tone = 'light') {
   const { w: W, h: H } = slot;
   const show = cs.show;
   const val = k => (cs.copy[k] ?? '').trim() || PLACEHOLDER[k];
+  // 글자 모드 — Light 는 흰 글자, Dark 는 검은 글자 (카피·동그란 CTA·Disclaimer)
+  const ink = cs.textMode === 'dark' ? '#000' : '#fff';
   ctx.save();
   ctx.clearRect(0, 0, W, H);
   ctx.fillStyle = toneColor(slot.bg || '#000000', tone);
@@ -111,7 +113,7 @@ export function drawSlot(ctx, slot, art, cs, tone = 'light') {
   const rows = slot.rows || [];
   const FACE = { eyebrow: [TEXT, 400], headline: [HEAD, 600], subcopy: [TEXT, 400] };
   const on = { eyebrow: show.eyebrow, headline: true, subcopy: show.subcopy };
-  ctx.fillStyle = '#fff';
+  ctx.fillStyle = ink;
   ctx.textBaseline = 'top';
   let shift = 0, lastEnd = null, lastFigmaEnd = null;
   rows.forEach(r => {
@@ -136,7 +138,7 @@ export function drawSlot(ctx, slot, art, cs, tone = 'light') {
     const [fx, fy, , fh] = slot.cta.b;
     const by = slot.cta.stack && lastFigmaEnd != null ? fy + shift : fy;
     const r = fh / 2, cx = fx + r, cy = by + r;
-    ctx.strokeStyle = '#fff';
+    ctx.strokeStyle = ink;
     ctx.lineWidth = Math.max(1, fh * 0.03);
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
@@ -179,11 +181,13 @@ export function drawSlot(ctx, slot, art, cs, tone = 'light') {
     const draw = () => lines.forEach((l, n) => ctx.fillText(l, d.x, H - d.bottom - (lines.length - 1 - n) * lh));
     // 그림자 흐림은 변환을 안 따라가서 줄여 그리는 배율만큼 곱한다
     const k = Math.hypot(ctx.getTransform().a, ctx.getTransform().b);
-    ctx.fillStyle = '#fff';
-    ctx.shadowColor = 'rgba(255,255,255,1)';
+    // 흰 글자는 흰 빛 + 검은 그림자, 검은 글자는 반대로
+    const dark = cs.textMode === 'dark';
+    ctx.fillStyle = ink;
+    ctx.shadowColor = dark ? 'rgba(0,0,0,1)' : 'rgba(255,255,255,1)';
     ctx.shadowBlur = d.sz * 1.5 * k;
     draw();
-    ctx.shadowColor = 'rgba(0,0,0,1)';
+    ctx.shadowColor = dark ? 'rgba(255,255,255,1)' : 'rgba(0,0,0,1)';
     ctx.shadowBlur = d.sz * 0.5 * k;
     draw();
   }

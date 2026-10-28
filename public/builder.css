@@ -24,7 +24,10 @@ body.tb { display: flex; flex-direction: column; height: 100vh; overflow: hidden
   position: absolute; top: 0; bottom: 0; left: 50%; transform: translateX(-50%);
   display: flex; align-items: center; min-width: 0;
 }
-.tb-step { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.tb-step { display: flex; align-items: center; gap: 10px; flex-shrink: 0; padding: 0; border: 0; background: none; font: inherit; cursor: pointer; }
+.tb-step:disabled { cursor: default; }
+.tb-step:not(:disabled):not(.active):hover .tb-step-num { border-color: var(--gray-400); color: var(--gray-600); }
+.tb-step:not(:disabled):not(.active):hover .tb-step-label { color: var(--gray-600); }
 .tb-step-num {
   width: 34px; height: 34px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
@@ -115,6 +118,40 @@ body.tb { display: flex; flex-direction: column; height: 100vh; overflow: hidden
 /* 합성 장면 — 바탕 전체 크기로 키워 놓고 미리보기 창만큼 박스 안으로 당겨 넣는다 (left/top/width/height 는 JS) */
 .tb-scene { position: absolute; user-select: none; }
 .tb-scene #comp { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+/* 매체 알약 — 미리보기 아래 (BF 빌더 OutputPicker 와 같은 모양) */
+.tb-channels { margin: 16px auto 0; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.tb-channels-label { margin: 0; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: .025em; color: #8A8078; }
+/* 두 줄 — 줄마다 가운데 정렬, 칸이 모자라면 그 줄 안에서만 넘긴다 */
+.tb-channels-list { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.tb-channels-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.tb-channel {
+  padding: 8px 15px; border: 1px solid var(--gray-300); border-radius: 999px; background: #fff;
+  font: inherit; font-size: 12px; font-weight: 500; color: var(--gray-600); cursor: pointer; transition: border-color .15s, color .15s, background .15s;
+}
+.tb-channel:hover { border-color: var(--gray-400); }
+.tb-channel.on { border-color: var(--brand); background: rgb(253 49 46 / .08); color: var(--brand); }
+/* 상단 스텝 3 을 누르면 매체 줄을 잠깐 짚어 준다 */
+.tb-channels.flash .tb-channels-list { animation: tb-flash 1.2s ease-out; }
+@keyframes tb-flash { 0%, 40% { box-shadow: 0 0 0 6px rgb(253 49 46 / .18); } 100% { box-shadow: 0 0 0 6px rgb(253 49 46 / 0); } }
+.tb-channels-list { border-radius: 24px; }
+.tb-channel-gate, .tb-channels-body { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.tb-channel-gate[hidden], .tb-channels-body[hidden] { display: none; }
+.tb-channel-open { padding: 0 28px; height: 44px; border-radius: 999px; font-size: 14px; }
+.tb-channels-note { margin: 0; max-width: 512px; font-size: 11px; line-height: 1.6; text-align: center; color: #8A8078; }
+
+/* 합성 예시 — 미리보기 창과 같은 크기로 장면 위에 덮는다. 토글은 오른쪽 위 */
+.tb-example { position: absolute; inset: 0; z-index: 2; }
+.tb-example[hidden] { display: none; }
+.tb-example-toggle {
+  position: absolute; top: 12px; right: 12px; z-index: 3; display: flex; padding: 3px; gap: 2px;
+  border-radius: 999px; background: rgb(255 255 255 / .85); box-shadow: 0 1px 4px rgb(0 0 0 / .12); backdrop-filter: blur(6px);
+}
+.tb-example-toggle button {
+  padding: 5px 12px; border: 0; border-radius: 999px; background: none;
+  font: inherit; font-size: 12px; font-weight: 500; color: var(--gray-600); cursor: pointer; transition: background .15s, color .15s;
+}
+.tb-example-toggle button:hover { color: var(--gray-900); }
+.tb-example-toggle button.on { background: var(--brand); color: #fff; }
 .tb-preview-foot { padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; }
 .tb-preview-foot .name { margin: 0; font-size: 14px; font-weight: 500; color: var(--gray-900); }
 .tb-preview-foot .meta { margin: 0; font-size: 12px; color: var(--gray-400); }
@@ -124,7 +161,7 @@ body.tb { display: flex; flex-direction: column; height: 100vh; overflow: hidden
 .tb-edit-asset { padding: 20px 20px 4px; }
 .tb-edit-asset .name { margin: 0 0 2px; font-size: 15px; font-weight: 700; }
 .tb-edit-asset .meta { margin: 0; font-size: 12px; color: var(--gray-400); }
-.tb-edit-frame { margin-top: 16px; aspect-ratio: 1; border-radius: 8px; overflow: hidden; }
+.tb-edit-frame { position: relative; margin-top: 16px; aspect-ratio: 1; border-radius: 8px; overflow: hidden; }
 .tb-edit-frame img, .tb-edit-frame canvas { width: 100%; height: 100%; object-fit: contain; display: block; }
 /* 접이식 기능 박스 — 머리를 누르면 아래로 펼쳐진다 (grid 0fr→1fr 로 높이 전환) */
 .tb-acc { margin: 16px 20px 0; border: 1px solid var(--gray-200); border-radius: 8px; background: #fff; transition: border-color .15s; }
@@ -216,6 +253,15 @@ body.tb { display: flex; flex-direction: column; height: 100vh; overflow: hidden
 .tb-object:active { box-shadow: 0 0 0 2px var(--brand); }
 .tb-object img { width: 100%; height: 100%; object-fit: contain; display: block; }
 
+/* 오브젝트 — 놓인 것(On stage) 상자와 고르는 목록(Add object)을 나눈다 */
+.tb-obj-stage { padding: 10px 12px 12px; border: 1px solid var(--gray-200); border-radius: 10px; background: var(--gray-50); display: flex; flex-direction: column; gap: 10px; }
+.tb-obj-stage[hidden] { display: none; }
+.tb-obj-head { margin: 0; display: flex; align-items: center; justify-content: space-between; font-size: 12px; font-weight: 600; color: var(--gray-700, #4A4440); }
+.tb-obj-count { font-size: 11px; font-weight: 500; color: var(--gray-500); }
+.tb-obj-lib-head { margin-top: 6px; }
+.tb-objects.full .tb-object { opacity: .4; cursor: not-allowed; }
+.tb-objects.full .tb-object:hover { border-color: var(--gray-200); }
+
 /* 놓인 오브젝트 — 썸네일을 누르면 그 오브젝트를 고르고, × 로 뺀다 */
 .tb-placed { display: flex; flex-wrap: wrap; gap: 8px; }
 .tb-placed:empty { display: none; }
@@ -241,11 +287,15 @@ body.tb { display: flex; flex-direction: column; height: 100vh; overflow: hidden
 .tb-acc-badge { align-self: flex-start; padding: 2px 8px; border-radius: 999px; background: #FFF4E5; color: #B26A00; font-size: 11px; font-weight: 600; }
 
 /* 배너 컷 — 한 장 전체 + 그 위 텍스트 (Image 줄) */
+.tb-banner { position: absolute; }
+#bannerView { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+/* 위 display:block 이 hidden 속성을 덮지 않게 */
+.tb-banner [hidden], #bannerView[hidden] { display: none; }
 .tb-banner img, .tb-banner #bannerComp { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .tb-banner-overlay { position: absolute; inset: 0; user-select: none; }
-.tb-text-box { position: absolute; cursor: grab; border: 1px dashed transparent; border-radius: 4px; touch-action: none; }
-.tb-text-box:hover, .tb-banner-overlay.guides .tb-text-box { border-color: rgb(253 49 46 / .7); }
-.tb-banner-overlay.dragging .tb-text-box { cursor: grabbing; border-color: var(--brand); }
+.tb-text-box { position: absolute; cursor: grab; touch-action: none; }
+/* 글자 주변 빨간 가이드 선은 보이지 않게 — 끌 수 있다는 건 커서로만 알린다 */
+.tb-banner-overlay.dragging .tb-text-box { cursor: grabbing; }
 .tb-text-input {
   width: 100%; resize: vertical; min-height: 56px; padding: 8px 10px; border: 1px solid var(--gray-200); border-radius: 8px;
   font: inherit; font-size: 13px; color: var(--gray-900); background: #fff;
@@ -261,3 +311,100 @@ body.tb { display: flex; flex-direction: column; height: 100vh; overflow: hidden
 .tb-swatch.custom { background: conic-gradient(#f44, #fd4, #4d6, #4bf, #84f, #f4b, #f44); }
 .tb-swatch.custom.on { background: var(--c); }
 .tb-swatch.custom input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+
+/* 늘 펼쳐 두는 박스 (PINNED) — 접기 화살표·손 커서 없이 */
+.tb-acc.pinned .tb-acc-head { cursor: default; }
+.tb-acc.pinned .tb-acc-chev { display: none; }
+
+/* 매체 Copy 패널 — BF Content Builder 의 SlotCopyEditor 와 같은 모양 (lib/channelCopy.js) */
+.cc { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+.cc-title { margin: 0 0 2px; font-size: 15px; font-weight: 700; color: var(--gray-900); }
+.cc-sub { margin: 0; font-size: 12px; color: var(--gray-400); }
+.cc-field { display: flex; flex-direction: column; gap: 4px; }
+.cc-sub-field { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+.cc-label-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.cc-label { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 500; color: var(--gray-700); }
+.cc-hint { font-size: 10px; color: var(--gray-400); text-align: right; }
+.cc-small { font-size: 11px; color: var(--gray-500, #8A8078); }
+.cc-sub-field.off .cc-small, .cc-sub-field.off .cc-hint { color: var(--gray-300); }
+.cc-check { width: 14px; height: 14px; margin: 0; accent-color: var(--brand); }
+.cc-input {
+  width: 100%; padding: 8px 12px; border: 1px solid var(--gray-300); border-radius: 8px; background: #fff;
+  font: inherit; font-size: 14px; color: var(--gray-800, #2B2622); resize: vertical;
+}
+.cc-input:focus { outline: none; border-color: var(--brand); }
+.cc-input::placeholder { color: var(--gray-300); }
+.cc-input:disabled { opacity: .4; background: var(--gray-50); }
+.cc-inline { display: flex; align-items: center; gap: 8px; }
+.cc-section { display: flex; flex-direction: column; gap: 10px; padding-top: 16px; border-top: 1px solid var(--gray-100); }
+.cc-logos { display: flex; align-items: flex-start; gap: 8px; }
+.cc-logos.off { opacity: .4; pointer-events: none; }
+.cc-logo { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 0; border: 0; background: none; cursor: pointer; }
+.cc-logo-thumb { width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid var(--gray-200); transition: box-shadow .15s; }
+.cc-logo-thumb img { width: 36px; height: 15.86px; }
+.cc-logo.on .cc-logo-thumb { border-color: transparent; box-shadow: 0 0 0 2px #fff, 0 0 0 5px var(--brand); }
+.cc-logo-label { font-size: 11px; white-space: nowrap; color: var(--gray-600); }
+.cc-logo.on .cc-logo-label { color: var(--brand); font-weight: 500; }
+.cc-seg { display: flex; gap: 8px; }
+.cc-seg-btn {
+  flex: 1; height: 36px; border: 2px solid var(--gray-200); border-radius: 8px; background: #fff;
+  font: inherit; font-size: 12px; font-weight: 500; color: var(--gray-600); cursor: pointer; transition: border-color .15s;
+}
+.cc-seg-btn:hover { border-color: var(--gray-300); }
+.cc-seg-btn.on { border-color: var(--brand); background: rgb(253 49 46 / .05); color: var(--gray-900); }
+.cc-toggle { display: flex; gap: 4px; padding: 4px; border-radius: 8px; background: var(--gray-100); }
+.cc-toggle button {
+  flex: 1; height: 32px; display: flex; align-items: center; justify-content: center; gap: 6px; border: 0; border-radius: 6px; background: none;
+  font: inherit; font-size: 12px; font-weight: 500; color: var(--gray-500, #8A8078); cursor: pointer;
+}
+.cc-toggle button.on { background: #fff; color: var(--gray-900); box-shadow: 0 1px 2px rgb(0 0 0 / .08); }
+.cc-dot { width: 10px; height: 10px; border-radius: 50%; border: 1px solid var(--gray-300); }
+.cc-count { display: flex; gap: 6px; margin-left: auto; }
+.cc-count .cc-seg-btn { flex: none; width: 36px; height: 32px; }
+.cc-icons { display: flex; flex-direction: column; gap: 10px; }
+.cc-icon-slot { display: flex; flex-direction: column; gap: 4px; }
+.cc-icon-label { font-size: 12px; line-height: 1.35; padding: 6px 12px; resize: none; border-color: var(--gray-200); }
+.cc-combo { position: relative; }
+.cc-combo-btn {
+  width: 100%; display: flex; align-items: center; gap: 12px; padding: 8px 12px; border: 1px solid var(--gray-300); border-radius: 8px; background: #fff;
+  font: inherit; font-size: 14px; color: var(--gray-700); cursor: pointer; text-align: left;
+}
+.cc-combo-btn:hover { border-color: var(--gray-400); }
+.cc-combo-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cc-chev { color: var(--gray-400); font-size: 12px; }
+.cc-icon-prev { width: 40px; height: 40px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: #F5F5F5; }
+.cc-icon-prev.dim { background: #888; }
+.cc-combo-pop {
+  position: absolute; z-index: 20; top: calc(100% + 4px); left: 0; right: 0; overflow: hidden;
+  border: 1px solid var(--gray-200); border-radius: 8px; background: #fff; box-shadow: 0 8px 24px rgb(0 0 0 / .12);
+}
+.cc-combo-search { padding: 8px; border-bottom: 1px solid var(--gray-100); }
+.cc-combo-search input { width: 100%; border: 0; outline: none; font: inherit; font-size: 14px; background: none; }
+.cc-combo-list { max-height: 300px; overflow-y: auto; }
+.cc-combo-item {
+  width: 100%; display: flex; align-items: center; gap: 12px; padding: 8px 12px; border: 0; background: none;
+  font: inherit; font-size: 14px; color: var(--gray-800, #2B2622); text-align: left; cursor: pointer;
+}
+.cc-combo-item:hover { background: var(--gray-50); }
+.cc-combo-item span:nth-child(2) { flex: 1; }
+.cc-tick { color: var(--brand); font-size: 13px; }
+.cc-combo-empty { margin: 0; padding: 24px 0; text-align: center; font-size: 14px; color: var(--gray-400); }
+.cc-reset { align-self: flex-start; padding: 0; border: 0; background: none; font: inherit; font-size: 12px; color: var(--gray-500, #8A8078); cursor: pointer; }
+.cc-reset:hover { color: var(--brand); }
+.cc-reset:disabled { opacity: .4; pointer-events: none; }
+
+/* 매체 사이즈 미리보기 — 매체 알약 아래, 원래 크기 비율대로 줄여서 줄 바꿈 배치 */
+.tb-slots { margin: 24px auto 0; max-width: 1200px; display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 20px 16px; }
+.tb-slots[hidden] { display: none; }
+.tb-slot { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.tb-slot canvas { display: block; height: auto; border-radius: 2px; box-shadow: 0 1px 3px rgb(0 0 0 / .12); background: #fff; }
+.tb-slot figcaption { font-size: 11px; color: #8A8078; }
+.tb-slots-empty { margin: 0; padding: 24px 0; font-size: 13px; color: #8A8078; }
+
+/* 3 단계부터 글자 자리 고정 — 끌기 상자를 꺼서 손 커서도 안 뜬다 */
+.tb-banner-overlay.locked .tb-text-box { pointer-events: none; }
+/* 제품·오브젝트 장면도 같이 — 손잡이·끌기 커서가 안 뜬다 */
+.tb-scene .overlay.locked { pointer-events: none; }
+.tb-scene .overlay.locked #handles, .tb-scene .overlay.locked #brushCursor { display: none; }
+.tb-slots-group { flex-basis: 100%; margin: 12px 0 -4px; font-size: 12px; font-weight: 600; color: #6B625B; text-align: center; }
+.tb-slots-group:first-child { margin-top: 0; }

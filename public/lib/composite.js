@@ -23,7 +23,7 @@ export const DEFAULT_FX = {
       both  — 벽 앞 바닥에 선 제품: 바닥 그림자 + 뒷벽 그림자, 벽 그림자는 발끝 기준
   */
   surface: 'floor',
-  direction: 'center',            // 'left' | 'center' | 'right' — 그림자가 떨어지는 쪽
+  direction: 'center',            // 'left' | 'center' | 'right' — 그림자가 떨어지는 쪽 (left·right 는 앞쪽 아래로 사선)
   contact: { on: true, strength: 70 },
   floor: { on: true, strength: 45, softness: 50, length: 30 },
   wall: { strength: 40, depth: 30, offsetY: 0 },   // offsetY: −50(위) ~ +50(아래)
@@ -289,7 +289,9 @@ function shadowSprite(base, w, h, fx) {
       const hanging = fx.surface === 'wall';
       const ay = hanging ? h / 2 : h;                       // 커지는 기준점
       // 벽걸이는 위쪽 조명이라 기본으로 조금 아래로 떨어진다. 사용자가 위아래를 더 옮길 수 있다.
-      const dy = (hanging ? unit * (0.015 + dp * 0.06) : 0) + ((fx.wall.offsetY ?? 0) / 100) * h;
+      // Left / Right 는 위에서 비스듬히 오는 빛 — 옆으로 밀리는 만큼 아래로도 떨어져 사선이 된다
+      const diag = Math.abs(dir) * unit * (0.03 + dp * 0.16);
+      const dy = (hanging ? unit * (0.015 + dp * 0.06) : 0) + diag + ((fx.wall.offsetY ?? 0) / 100) * h;
       addLayer((ctx) => {
         ctx.translate(ox + w / 2 + dx, oy + ay + dy);
         ctx.scale(sc, sc);
@@ -298,19 +300,26 @@ function shadowSprite(base, w, h, fx) {
       }, 2 + unit * (0.01 + dp * 0.05), (fx.wall.strength / 100) * (1 - dp * 0.35));
     }
 
-    // ② 바닥 그림자 — 실루엣을 바닥면으로 눕혀 제품 뒤쪽 바닥에 깐다.
-    //    방향에 따라 옆으로 기울어서, 제품 옆으로 삐져나온 부분이 보인다.
+    // ② 바닥 그림자 — 실루엣을 바닥면으로 눕혀 바닥에 깐다.
+    //    · Center — 제품 뒤쪽(위)으로 눕힌다
+    //    · Left / Right — 위에서 비추는 빛이라 발끝에서 앞쪽(아래)으로, 그쪽으로 사선을 그리며 떨어진다
     if (L.floor) {
       const k = 0.06 + (fx.floor.length / 100) * 0.34;        // 눕힌 높이 비율
       const shear = dir * (0.25 + (fx.floor.length / 100) * 0.9);
+      const front = dir !== 0;
       addLayer((ctx) => {
-        // (x, y) → (x − shear·y + shear·h,  h(1−k) + k·y): 꼭대기는 뒤(위)로, 발끝은 제자리
-        ctx.transform(1, 0, -shear, k, ox + shear * h, oy + h * (1 - k));
+        if (front) {
+          // (x, y) → (x + shear·(h − y),  h + k·(h − y)): 꼭대기는 아래·옆으로, 발끝은 제자리
+          ctx.transform(1, 0, -shear, -k, ox + shear * h, oy + h * (1 + k));
+        } else {
+          // (x, y) → (x − shear·y + shear·h,  h(1−k) + k·y): 꼭대기는 뒤(위)로, 발끝은 제자리
+          ctx.transform(1, 0, -shear, k, ox + shear * h, oy + h * (1 - k));
+        }
         silhouette(ctx);
         // 멀어질수록 옅게 — 발끝 쪽이 진하다
         ctx.setTransform(q, 0, 0, q, 0, 0);
         ctx.globalCompositeOperation = 'destination-in';
-        const g = ctx.createLinearGradient(0, oy + h, 0, oy + h * (1 - k));
+        const g = ctx.createLinearGradient(0, oy + h, 0, front ? oy + h * (1 + k) : oy + h * (1 - k));
         g.addColorStop(0, 'rgba(0,0,0,1)');
         g.addColorStop(1, 'rgba(0,0,0,0.15)');
         ctx.fillStyle = g;

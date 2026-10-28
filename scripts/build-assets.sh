@@ -117,9 +117,12 @@ bake_kv() {
   fi
   mkdir -p "$OUT/image"
   n=$(size_of "$text")
-  sips -s format jpeg -s formatOptions 85 -c $((n * 2266 / 10000)) $((n * 379 / 1000)) \
-    --cropOffset $((n * 338 / 1000)) $((n * 319 / 1000)) "$text" --out "$OUT/image/kv-$tone-thumb.jpg" >/dev/null
-  sips -z 168 280 "$OUT/image/kv-$tone-thumb.jpg" >/dev/null
+  # 팔레트 썸네일은 빌더 기본 글자로 그린 것 (scripts/kv-thumbs.mjs) — 이미 있으면 원본의 글자로 덮어쓰지 않는다
+  if [ ! -f "$OUT/image/kv-$tone-thumb.jpg" ]; then
+    sips -s format jpeg -s formatOptions 85 -c $((n * 2266 / 10000)) $((n * 379 / 1000)) \
+      --cropOffset $((n * 338 / 1000)) $((n * 319 / 1000)) "$text" --out "$OUT/image/kv-$tone-thumb.jpg" >/dev/null
+    sips -z 168 280 "$OUT/image/kv-$tone-thumb.jpg" >/dev/null
+  fi
   sips -s format jpeg -s formatOptions 90 "$plain" --out "$OUT/image/kv-$tone.jpg" >/dev/null
   echo "baked main theme kv-$tone ($(size_of "$plain") × $(height_of "$plain"))"
 }

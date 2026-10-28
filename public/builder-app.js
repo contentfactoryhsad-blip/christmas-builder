@@ -560,10 +560,9 @@ function channelPicker() {
  * 화면에서는 사이즈마다 긴 변 360 안으로 줄여 보이고 (BF 처럼 한 비율로 줄이지 않는다 — 한눈에 다 보이게),
  * 캔버스도 보이는 크기 × 화면 배율로만 만든다 (원래 픽셀로 만들면 ALL 에서 수백 MB 가 된다)
  */
-// 매체 사이즈 미리보기는 지금 Criteo 만 공개한다 (ALL 도 Criteo 만) — 나머지 매체 데이터는 들어 있지만 화면에는 아직 안 띄운다.
-// 공개할 매체 key 를 여기에 더하면 바로 보인다
+// 매체 사이즈 미리보기 — 매체 목록 전부 공개 (ALL 은 모든 매체를 이어 붙인다). 숨길 매체는 여기서 빼면 된다
 const SHOW_SLOTS = true;
-const PUBLIC_SLOTS = new Set(['criteo']);
+const PUBLIC_SLOTS = new Set(CHANNEL_ROWS.flat().map(c => c.key).filter(k => k !== 'all'));
 let slotsQueued = false;
 function renderSlots() {
   if (slotsQueued) return;

@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>Usage Stats · Christmas Builder</title>
+  <link rel="icon" href="favicon.png" />
+  <link rel="stylesheet" href="style.css" />
+  <!-- 관리자용 사용 통계 — 블프 빌더 UsageStats 를 옮긴 것. 빌더 주소 뒤에 #stats 를 붙이면 여기로 온다 (화면 어디에도 링크가 없다) -->
+  <style>
+    body { margin: 0; background: #f8f7f5; font-family: "LGEI Text", sans-serif; color: var(--gray-900); }
+    .st-head { height: 64px; padding: 0 32px; display: flex; align-items: center; justify-content: space-between; background: #fff; border-bottom: 1px solid var(--gray-200); }
+    .st-brand { display: flex; align-items: center; gap: 8px; font: 700 15px "LGEI Headline", sans-serif; }
+    .st-brand img { height: 20px; }
+    .st-brand i { width: 1px; height: 16px; background: var(--gray-200); }
+    .st-actions { display: flex; gap: 16px; }
+    .st-actions a, .st-actions button { border: 0; background: none; padding: 0; font: inherit; font-size: 12px; color: var(--gray-500); cursor: pointer; text-decoration: none; }
+    .st-actions a:hover, .st-actions button:hover { color: var(--brand); }
+    .st-body { max-width: 1024px; margin: 0 auto; padding: 32px 40px 64px; display: flex; flex-direction: column; gap: 20px; }
+    .card { background: #fff; border: 1px solid var(--gray-200); border-radius: 16px; padding: 20px; }
+    .card-title { margin: 0 0 12px; font: 700 15px "LGEI Headline", sans-serif; }
+    .muted { color: var(--gray-400); font-size: 12px; font-weight: 400; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip { height: 32px; padding: 0 12px; border: 1px solid var(--gray-200); border-radius: 999px; background: #fff; font: 500 12px "LGEI Text", sans-serif; color: var(--gray-500); cursor: pointer; }
+    .chip.on { border-color: var(--brand); color: var(--brand); background: rgb(253 49 46 / .05); }
+    .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .kpi b { display: block; font: 700 28px "LGEI Headline", sans-serif; font-variant-numeric: tabular-nums; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .bar-row { display: flex; align-items: center; gap: 12px; margin-top: 8px; font-size: 13px; }
+    .bar-row span:first-child { width: 150px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--gray-700); }
+    .bar { flex: 1; height: 8px; border-radius: 4px; background: var(--gray-100); overflow: hidden; }
+    .bar i { display: block; height: 100%; background: var(--brand); }
+    .bar-row span:last-child { width: 40px; text-align: right; font-size: 12px; color: var(--gray-500); font-variant-numeric: tabular-nums; }
+    .months { display: flex; align-items: flex-end; gap: 6px; height: 160px; overflow-x: auto; }
+    .month { width: 44px; height: 100%; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; border: 0; background: none; padding: 0; cursor: pointer; font: inherit; }
+    .month em { font-style: normal; font-size: 11px; color: var(--gray-400); font-variant-numeric: tabular-nums; }
+    .month i { width: 100%; min-height: 3px; border-radius: 4px 4px 0 0; background: var(--gray-200); }
+    .month:hover i { background: var(--gray-300); }
+    .month.on em { color: var(--brand); font-weight: 500; }
+    .month.on i { background: var(--brand); }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th { text-align: left; font-weight: 400; color: var(--gray-400); padding: 0 16px 8px 0; white-space: nowrap; }
+    td { border-top: 1px solid var(--gray-100); padding: 6px 16px 6px 0; color: var(--gray-700); white-space: nowrap; font-variant-numeric: tabular-nums; }
+    td button { border: 0; background: none; padding: 0; color: var(--brand); cursor: pointer; font: inherit; }
+    td button:hover { text-decoration: underline; }
+    .gate { min-height: calc(100vh - 64px); display: flex; align-items: center; justify-content: center; }
+    .gate form { width: 320px; display: flex; flex-direction: column; gap: 12px; }
+    .gate input { height: 40px; padding: 0 12px; border: 1px solid var(--gray-200); border-radius: 8px; font-size: 14px; outline: none; }
+    .gate input:focus { border-color: var(--brand); }
+    .gate button { height: 40px; border: 0; border-radius: 8px; background: var(--brand); color: #fff; font: 500 14px "LGEI Text", sans-serif; cursor: pointer; }
+    .err { margin: 0; font-size: 12px; color: var(--brand); }
+    .modal { position: fixed; inset: 0; z-index: 50; background: rgb(0 0 0 / .5); display: flex; align-items: center; justify-content: center; padding: 16px; }
+    .modal-box { width: 100%; max-width: 1024px; max-height: 100%; overflow-y: auto; background: #fff; border-radius: 16px; padding: 24px; }
+    .modal-head { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+    .thumbs { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; margin: 8px 0 24px; }
+    .thumbs button { border: 0; background: none; padding: 0; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+    .thumbs img { display: block; max-height: 160px; max-width: 240px; border: 1px solid var(--gray-200); }
+    .thumbs button:hover img { border-color: var(--brand); }
+    .thumbs small { max-width: 240px; font-size: 10px; color: var(--gray-400); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .zoom { position: fixed; inset: 0; z-index: 60; background: rgb(0 0 0 / .8); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 24px; }
+    .zoom img { max-width: 100%; max-height: 85vh; object-fit: contain; }
+    .zoom span { font-size: 12px; color: rgb(255 255 255 / .7); }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <header class="st-head">
+    <a class="st-brand" href="/" style="color:inherit;text-decoration:none"><img src="lg-logo.svg" alt="LG" /><i></i>Christmas Builder · Usage Stats</a>
+    <div class="st-actions" id="actions" hidden>
+      <button type="button" id="reload">새로고침</button>
+      <a id="csv" href="#">CSV 내려받기</a>
+      <button type="button" id="reset">기록 리셋</button>
+    </div>
+  </header>
+  <div class="gate" id="gate">
+    <form class="card" id="gateForm">
+      <p class="card-title" style="margin:0">관리자 열쇠</p>
+      <input type="password" id="keyInput" placeholder="USAGE_KEY" autofocus />
+      <p class="err" id="gateErr" hidden></p>
+      <button type="submit" id="gateBtn">열기</button>
+    </form>
+  </div>
+  <main class="st-body" id="main" hidden></main>
+  <script type="module" src="stats.js"></script>
+</body>
+</html>

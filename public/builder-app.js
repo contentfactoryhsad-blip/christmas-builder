@@ -21,6 +21,9 @@ import { importFromUrl, importFromFile, editProduct } from './lib/productImportF
 import { DEFAULT_FX, cloneFx, createBackground, drawComposite } from './lib/composite.js';
 import { newCopyState, renderCopyPanel, bindCopyPanel } from './lib/channelCopy.js';
 import { slotsForChannel, drawSlot, logosReady } from './lib/channelSlots.js';
+import { captureHubCountry, logUsage, makeThumb, thumbName, newOutputId, uploadOutput } from './lib/usageClient.js';
+
+captureHubCountry();
 import { orderQuad, warpInfill, colorField, detectObjects, adjustBackground, glowLayer } from './lib/infill.js';
 
 /**
@@ -2374,6 +2377,18 @@ function fileStem() {
  * showSaveFilePicker 는 쓰지 않는다 — 블프에서 0 바이트 파일·겹치는 저장 창 문제가 있었다.
  * 저장 위치를 고르는 동안에도 받을 수 있게 주소는 60 초 뒤에 거둔다 (2 초면 고르는 사이에 끊겼다)
  */
+/** 사용 기록 + 결과 썸네일 — 저장이 끝난 뒤, 실패해도 조용히 (관리자 화면 stats.html 이 본다) */
+async function recordDownload(detail, pngs) {
+  const output = newOutputId();
+  await logUsage({ item: fileStem().replace(/^christmas-/, ''), detail, files: pngs.length, output });
+  const thumbs = [];
+  for (const p of pngs) {
+    const blob = await makeThumb(p.blob);
+    if (blob) thumbs.push({ name: p.name, blob });
+  }
+  await uploadOutput(output, thumbs);
+}
+
 function saveBlob(blob, name) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -2398,6 +2413,7 @@ async function downloadSlots() {
   exporting = true;
   btn.disabled = true;
   label.textContent = `0 / ${total}`;
+  const pngs = []; // 다운로드가 끝난 뒤 썸네일로 올린다
   try {
     for (const key of keys) {
       const folder = CHANNEL_ROWS.flat().find(c => c.key === key)?.label || key;
@@ -2408,10 +2424,12 @@ async function downloadSlots() {
         drawSlot(c.getContext('2d'), sl, art, state.copy, hit.asset.tone, { imageOnly: key === 'lg-com' });
         const blob = await new Promise(r => c.toBlob(r, 'image/png'));
         (keys.length > 1 ? zip.folder(folder) : zip).file(`${sl.key}.png`, blob);
+        pngs.push({ name: thumbName(sl.key), blob });
         label.textContent = `${++done} / ${total}`;
       }
     }
     saveBlob(await zip.generateAsync({ type: 'blob' }), `${fileStem()}-${state.channel}.zip`);
+    void recordDownload(state.channel, pngs);
   } finally {
     exporting = false;
     btn.disabled = false;
@@ -2435,7 +2453,10 @@ $('#download').addEventListener('click', async () => {
     paint(out.getContext('2d'));
   }
   const blob = await new Promise(r => out.toBlob(r, 'image/png'));
-  if (blob) saveBlob(blob, `${fileStem()}.png`);
+  if (blob) {
+    saveBlob(blob, `${fileStem()}.png`);
+    void recordDownload('visual', [{ name: thumbName(fileStem()), blob }]);
+  }
 });
 
 /**

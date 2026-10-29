@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <!-- 관리자 통계 — 주소 뒤에 #stats 를 붙이면 통계 화면으로 (블프·세일즈 빌더와 같은 진입) -->
+  <script>{ const go = () => { if (location.hash === '#stats') location.replace('/stats.html'); }; go(); addEventListener('hashchange', go); }</script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Christmas Builder</title>

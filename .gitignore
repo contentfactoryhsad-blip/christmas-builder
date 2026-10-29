@@ -3,3 +3,5 @@ node_modules/
 # 원본 이미지(수십 MB)는 레포에 올리지 않는다 — 배포에는 scripts/build-assets.sh 가 구운 public/assets/ 만 쓴다
 source/
 file/
+# 사용 기록 (lib/usageLog.ts) — 로컬 기록은 올리지 않는다
+logs/

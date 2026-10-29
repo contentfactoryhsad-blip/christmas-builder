@@ -516,3 +516,6 @@ a.tb-pill:not(.outline-brand):hover { border-color: var(--gray-400); }
 /* 안내 글씨에 맞춘 OK 버튼 */
 #channelGate .tb-channel-open { min-width: 96px; height: 40px; padding: 0 28px; font-size: 16px; }
 #channelGate { gap: 14px; }
+
+/* 채널 목록 아래 LG.com 다운로드 안내 — 조금 크게 */
+#channelBody .tb-channels-note { max-width: 600px; font-size: 13px; }

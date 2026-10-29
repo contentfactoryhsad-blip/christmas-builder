@@ -2291,7 +2291,46 @@ document.addEventListener('keydown', e => {
 
 // ── 다운로드 — 정사각 전체를 원본 해상도로 ───────────────────
 
+/**
+ * 3 단계에서 매체를 골랐으면 그 매체 사이즈 전부를 원래 픽셀로 그려 zip 하나로 받는다 (ALL 은 매체별 폴더).
+ * LG.com 은 이미지 업로드 가이드대로 카피·CTA 없이 (아이콘·디스클레이머만)
+ */
+async function downloadSlots() {
+  const hit = findAsset(state.selectedId);
+  const board = hit.asset.banner ? 'main' : 'product';
+  const art = hit.asset.banner ? $('#bannerComp') : $('#comp');
+  const keys = state.channel === 'all' ? [...PUBLIC_SLOTS] : [state.channel];
+  const zip = new JSZip();
+  const btn = $('#download');
+  btn.disabled = true;
+  try {
+    let n = 0;
+    for (const key of keys) {
+      const label = CHANNEL_ROWS.flat().find(c => c.key === key)?.label || key;
+      for (const sl of slotsForChannel(key, board)) {
+        const c = document.createElement('canvas');
+        c.width = sl.w;
+        c.height = sl.h;
+        drawSlot(c.getContext('2d'), sl, art, state.copy, hit.asset.tone, { imageOnly: key === 'lg-com' });
+        const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+        (keys.length > 1 ? zip.folder(label) : zip).file(`${sl.key}.png`, blob);
+        n++;
+      }
+    }
+    const out = await zip.generateAsync({ type: 'blob' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(out);
+    a.download = `christmas-${hit.asset.base || state.selectedId}-${state.channel}.zip`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    return n;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 $('#download').addEventListener('click', () => {
+  if (state.step >= 2 && state.channel && SHOW_SLOTS && window.JSZip) { void downloadSlots(); return; }
   if (activeText() && state.banner?.assetId === state.selectedId) {
     const out = document.createElement('canvas');
     out.width = state.banner.w;

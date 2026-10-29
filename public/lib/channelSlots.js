@@ -74,7 +74,10 @@ export const logosReady = () => Promise.all(Object.keys(LOGOS).map(id => {
  * 사이즈 하나를 ctx 에 slot.w × slot.h 좌표로 그린다 (미리보기는 바깥에서 ctx 를 줄여 둔다).
  * art: 3000² 완성 컷 캔버스(또는 이미지), cs: lib/channelCopy.js 의 Copy 상태, tone: 'light' | 'dark'
  */
-export function drawSlot(ctx, slot, art, cs, tone = 'light') {
+/**
+ * opts.imageOnly: LG.com 다운로드용 — 카피·CTA 없이 (이미지 업로드 가이드: 아이콘·디스클레이머만 남긴다)
+ */
+export function drawSlot(ctx, slot, art, cs, tone = 'light', opts = {}) {
   const { w: W, h: H } = slot;
   const show = cs.show;
   const val = k => (cs.copy[k] ?? '').trim() || PLACEHOLDER[k];
@@ -110,7 +113,7 @@ export function drawSlot(ctx, slot, art, cs, tone = 'light') {
 
   // 카피 — Figma 자리에서 시작해 위에서부터 쌓는다. 줄 수가 달라지면 아래 줄을 그만큼 민다
   // 높이가 낮은 띠 배너(120 이하)는 Figma 줄 수를 넘으면 말줄임
-  const rows = slot.rows || [];
+  const rows = opts.imageOnly ? [] : slot.rows || [];
   const FACE = { eyebrow: [TEXT, 400], headline: [HEAD, 600], subcopy: [TEXT, 400] };
   const on = { eyebrow: show.eyebrow, headline: true, subcopy: show.subcopy };
   ctx.fillStyle = ink;
@@ -123,7 +126,8 @@ export function drawSlot(ctx, slot, art, cs, tone = 'light') {
     ctx.textAlign = r.al === 'C' ? 'center' : r.al === 'R' ? 'right' : 'left';
     const tx = r.al === 'C' ? r.x + r.w / 2 : r.al === 'R' ? r.x + r.w : r.x;
     const lh = r.sz * 1.06;
-    const lines = wrap(ctx, val(r.k), r.w, H <= 120 ? r.lines : Infinity);
+    // 낮은 띠 배너(120 이하)와 줄 수를 고정한 칸(clamp)은 Figma 줄 수를 넘으면 말줄임 — CTA 가 밀리지 않게
+    const lines = wrap(ctx, val(r.k), r.w, H <= 120 || r.clamp ? r.lines : Infinity);
     // 앞 줄이 숨겨졌으면 그 자리만큼 당긴다 — 첫 줄은 Figma 의 첫 줄 자리에서
     const y = lastEnd == null ? rows[0].y : lastEnd + (r.y - lastFigmaEnd);
     lines.forEach((l, n) => ctx.fillText(l, tx, y + n * lh + (lh - r.sz) / 2));
@@ -136,7 +140,7 @@ export function drawSlot(ctx, slot, art, cs, tone = 'light') {
   const ctaY = fy => (lastEnd != null && lastRow ? lastEnd + (fy - (lastRow.y + lastRow.h)) : fy + shift);
 
   // CTA — 세로 배치는 카피 아래 Figma 간격, 가로 띠는 고정 자리
-  if (slot.cta && show.cta && slot.cta.round) {
+  if (!opts.imageOnly && slot.cta && show.cta && slot.cta.round) {
     // LG.com 일부 사이즈 — 글자 없는 동그란 화살표 버튼 (흰 테두리)
     const [fx, fy, , fh] = slot.cta.b;
     const by = slot.cta.stack ? ctaY(fy) : fy;
@@ -153,7 +157,7 @@ export function drawSlot(ctx, slot, art, cs, tone = 'light') {
     ctx.moveTo(cx - a, cy); ctx.lineTo(cx + a, cy);
     ctx.moveTo(cx + a * 0.35, cy - a * 0.65); ctx.lineTo(cx + a, cy); ctx.lineTo(cx + a * 0.35, cy + a * 0.65);
     ctx.stroke();
-  } else if (slot.cta && show.cta) {
+  } else if (!opts.imageOnly && slot.cta && show.cta) {
     const b = slot.cta;
     const [fx, fy, fw, fh] = b.b;
     ctx.font = `400 ${b.sz}px ${TEXT}`;

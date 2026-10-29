@@ -2295,6 +2295,13 @@ document.addEventListener('keydown', e => {
  * 3 단계에서 매체를 골랐으면 그 매체 사이즈 전부를 원래 픽셀로 그려 zip 하나로 받는다 (ALL 은 매체별 폴더).
  * LG.com 은 이미지 업로드 가이드대로 카피·CTA 없이 (아이콘·디스클레이머만)
  */
+/** 받는 파일 이름 앞부분 — christmas-<maintheme|producttype>-<light|dark> */
+function fileStem() {
+  const hit = findAsset(state.selectedId);
+  const type = (hit?.group.label || 'visual').toLowerCase().replace(/[^a-z0-9]+/g, '');
+  return `christmas-${type}-${hit?.asset.tone || 'light'}`;
+}
+
 async function downloadSlots() {
   const hit = findAsset(state.selectedId);
   const board = hit.asset.banner ? 'main' : 'product';
@@ -2320,7 +2327,7 @@ async function downloadSlots() {
     const out = await zip.generateAsync({ type: 'blob' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(out);
-    a.download = `christmas-${hit.asset.base || state.selectedId}-${state.channel}.zip`;
+    a.download = `${fileStem()}-${state.channel}.zip`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
     return n;
@@ -2340,7 +2347,7 @@ $('#download').addEventListener('click', () => {
       if (!blob) return;
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `christmas-${state.selectedId}.png`;
+      a.download = `${fileStem()}.png`;
       a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     }, 'image/png');
@@ -2357,7 +2364,7 @@ $('#download').addEventListener('click', () => {
     if (!blob) return;
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `christmas-${state.selectedId}.png`;
+    a.download = `${fileStem()}.png`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }, 'image/png');

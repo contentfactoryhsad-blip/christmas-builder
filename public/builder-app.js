@@ -72,6 +72,7 @@ const PARKED_PRODUCT_TYPES = [
 
 /** manifest.json — 구워 둔 에셋 id → 원본 크기. 없으면 그 박스는 빈 박스. */
 let manifest = new Map();
+let exporting = false; // 사이즈 묶음을 만드는 중 — 다운로드 버튼에 n / 전체 를 보인다
 
 /**
  * 톤 — 팔레트에서 에셋마다 Light 칸과 Dark 칸이 나란히 놓인다 (캡션 = 톤 아이콘 + 이름).
@@ -939,7 +940,9 @@ const productEls = [];
 
 function update() {
   renderSteps();
-  $('#download').disabled = state.banner?.assetId === state.selectedId ? false : !state.bg || state.bg.assetId !== state.selectedId;
+  $('#download').disabled = exporting || (state.banner?.assetId === state.selectedId ? false : !state.bg || state.bg.assetId !== state.selectedId);
+  // 3 단계에서 매체를 고르면 사이즈 묶음(ZIP), 아니면 원본 한 장(PNG) — 받는 중에는 몇 장째인지 (블프 빌더와 같다)
+  if (!exporting) $('#downloadLabel').textContent = state.step >= 2 && state.channel && SHOW_SLOTS ? 'Download ZIP' : 'Download PNG';
   syncText();
   syncHandles();
   syncProductList();
@@ -2303,58 +2306,53 @@ function fileStem() {
 }
 
 /**
- * 저장 위치 묻기 — 다운로드마다 한 번 저장 창을 띄운다 (Chrome·Edge 의 showSaveFilePicker).
- * 버튼을 누른 그 순간에 불러야 해서 그리기 전에 먼저 묻고, 다 그린 뒤 그 자리에 쓴다.
- * 지원하지 않는 브라우저(Safari 등)는 브라우저 기본 다운로드로. 창을 닫으면(취소) null → 아무것도 안 한다
+ * 저장 — 블프 빌더(fileSaver.ts)와 같은 브라우저 기본 다운로드. 저장 위치는 Chrome 설정
+ * "다운로드 전에 각 파일의 저장 위치 확인" 이 켜져 있을 때만 한 번 묻는다.
+ * showSaveFilePicker 는 쓰지 않는다 — 블프에서 0 바이트 파일·겹치는 저장 창 문제가 있었다.
+ * 저장 위치를 고르는 동안에도 받을 수 있게 주소는 60 초 뒤에 거둔다 (2 초면 고르는 사이에 끊겼다)
  */
-async function askSaveTarget(name, mime, ext) {
-  if (!window.showSaveFilePicker) return { fallback: name };
-  try {
-    return await window.showSaveFilePicker({ suggestedName: name, types: [{ description: ext.toUpperCase(), accept: { [mime]: [`.${ext}`] } }] });
-  } catch (err) {
-    if (err?.name === 'AbortError') return null;
-    return { fallback: name };
-  }
-}
-async function saveBlob(target, blob) {
-  if (target.fallback) {
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = target.fallback;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-    return;
-  }
-  const w = await target.createWritable();
-  await w.write(blob);
-  await w.close();
+function saveBlob(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 
 async function downloadSlots() {
   const hit = findAsset(state.selectedId);
-  const target = await askSaveTarget(`${fileStem()}-${state.channel}.zip`, 'application/zip', 'zip');
-  if (!target) return;
   const board = hit.asset.banner ? 'main' : 'product';
   const art = hit.asset.banner ? $('#bannerComp') : $('#comp');
   const keys = state.channel === 'all' ? [...PUBLIC_SLOTS] : [state.channel];
   const zip = new JSZip();
   const btn = $('#download');
+  const label = $('#downloadLabel');
+  const total = keys.reduce((n, key) => n + slotsForChannel(key, board).length, 0);
+  let done = 0;
+  exporting = true;
   btn.disabled = true;
+  label.textContent = `0 / ${total}`;
   try {
     for (const key of keys) {
-      const label = CHANNEL_ROWS.flat().find(c => c.key === key)?.label || key;
+      const folder = CHANNEL_ROWS.flat().find(c => c.key === key)?.label || key;
       for (const sl of slotsForChannel(key, board)) {
         const c = document.createElement('canvas');
         c.width = sl.w;
         c.height = sl.h;
         drawSlot(c.getContext('2d'), sl, art, state.copy, hit.asset.tone, { imageOnly: key === 'lg-com' });
         const blob = await new Promise(r => c.toBlob(r, 'image/png'));
-        (keys.length > 1 ? zip.folder(label) : zip).file(`${sl.key}.png`, blob);
+        (keys.length > 1 ? zip.folder(folder) : zip).file(`${sl.key}.png`, blob);
+        label.textContent = `${++done} / ${total}`;
       }
     }
-    await saveBlob(target, await zip.generateAsync({ type: 'blob' }));
+    saveBlob(await zip.generateAsync({ type: 'blob' }), `${fileStem()}-${state.channel}.zip`);
   } finally {
+    exporting = false;
     btn.disabled = false;
+    update();
   }
 }
 
@@ -2362,8 +2360,6 @@ $('#download').addEventListener('click', async () => {
   if (state.step >= 2 && state.channel && SHOW_SLOTS && window.JSZip) { void downloadSlots(); return; }
   const isBanner = activeText() && state.banner?.assetId === state.selectedId;
   if (!isBanner && (!$('#comp') || !state.bg)) return;
-  const target = await askSaveTarget(`${fileStem()}.png`, 'image/png', 'png');
-  if (!target) return;
   // 화면용 캔버스를 그대로 쓰면 지우개 표시 등과 섞일 일이 없도록 새로 그린다
   const out = document.createElement('canvas');
   if (isBanner) {
@@ -2376,7 +2372,7 @@ $('#download').addEventListener('click', async () => {
     paint(out.getContext('2d'));
   }
   const blob = await new Promise(r => out.toBlob(r, 'image/png'));
-  if (blob) await saveBlob(target, blob);
+  if (blob) saveBlob(blob, `${fileStem()}.png`);
 });
 
 /**

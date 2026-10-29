@@ -2302,8 +2302,38 @@ function fileStem() {
   return `christmas-${type}-${hit?.asset.tone || 'light'}`;
 }
 
+/**
+ * 저장 위치 묻기 — 다운로드마다 한 번 저장 창을 띄운다 (Chrome·Edge 의 showSaveFilePicker).
+ * 버튼을 누른 그 순간에 불러야 해서 그리기 전에 먼저 묻고, 다 그린 뒤 그 자리에 쓴다.
+ * 지원하지 않는 브라우저(Safari 등)는 브라우저 기본 다운로드로. 창을 닫으면(취소) null → 아무것도 안 한다
+ */
+async function askSaveTarget(name, mime, ext) {
+  if (!window.showSaveFilePicker) return { fallback: name };
+  try {
+    return await window.showSaveFilePicker({ suggestedName: name, types: [{ description: ext.toUpperCase(), accept: { [mime]: [`.${ext}`] } }] });
+  } catch (err) {
+    if (err?.name === 'AbortError') return null;
+    return { fallback: name };
+  }
+}
+async function saveBlob(target, blob) {
+  if (target.fallback) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = target.fallback;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    return;
+  }
+  const w = await target.createWritable();
+  await w.write(blob);
+  await w.close();
+}
+
 async function downloadSlots() {
   const hit = findAsset(state.selectedId);
+  const target = await askSaveTarget(`${fileStem()}-${state.channel}.zip`, 'application/zip', 'zip');
+  if (!target) return;
   const board = hit.asset.banner ? 'main' : 'product';
   const art = hit.asset.banner ? $('#bannerComp') : $('#comp');
   const keys = state.channel === 'all' ? [...PUBLIC_SLOTS] : [state.channel];
@@ -2311,7 +2341,6 @@ async function downloadSlots() {
   const btn = $('#download');
   btn.disabled = true;
   try {
-    let n = 0;
     for (const key of keys) {
       const label = CHANNEL_ROWS.flat().find(c => c.key === key)?.label || key;
       for (const sl of slotsForChannel(key, board)) {
@@ -2321,53 +2350,33 @@ async function downloadSlots() {
         drawSlot(c.getContext('2d'), sl, art, state.copy, hit.asset.tone, { imageOnly: key === 'lg-com' });
         const blob = await new Promise(r => c.toBlob(r, 'image/png'));
         (keys.length > 1 ? zip.folder(label) : zip).file(`${sl.key}.png`, blob);
-        n++;
       }
     }
-    const out = await zip.generateAsync({ type: 'blob' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(out);
-    a.download = `${fileStem()}-${state.channel}.zip`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-    return n;
+    await saveBlob(target, await zip.generateAsync({ type: 'blob' }));
   } finally {
     btn.disabled = false;
   }
 }
 
-$('#download').addEventListener('click', () => {
+$('#download').addEventListener('click', async () => {
   if (state.step >= 2 && state.channel && SHOW_SLOTS && window.JSZip) { void downloadSlots(); return; }
-  if (activeText() && state.banner?.assetId === state.selectedId) {
-    const out = document.createElement('canvas');
+  const isBanner = activeText() && state.banner?.assetId === state.selectedId;
+  if (!isBanner && (!$('#comp') || !state.bg)) return;
+  const target = await askSaveTarget(`${fileStem()}.png`, 'image/png', 'png');
+  if (!target) return;
+  // 화면용 캔버스를 그대로 쓰면 지우개 표시 등과 섞일 일이 없도록 새로 그린다
+  const out = document.createElement('canvas');
+  if (isBanner) {
     out.width = state.banner.w;
     out.height = state.banner.h;
     paintBanner(out.getContext('2d'));
-    out.toBlob(blob => {
-      if (!blob) return;
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `${fileStem()}.png`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-    }, 'image/png');
-    return;
+  } else {
+    out.width = state.bg.w;
+    out.height = state.bg.h;
+    paint(out.getContext('2d'));
   }
-  const comp = $('#comp');
-  if (!comp || !state.bg) return;
-  // 화면용 캔버스를 그대로 쓰면 지우개 표시 등과 섞일 일이 없도록 새로 그린다
-  const out = document.createElement('canvas');
-  out.width = state.bg.w;
-  out.height = state.bg.h;
-  paint(out.getContext('2d'));
-  out.toBlob(blob => {
-    if (!blob) return;
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `${fileStem()}.png`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  }, 'image/png');
+  const blob = await new Promise(r => out.toBlob(r, 'image/png'));
+  if (blob) await saveBlob(target, blob);
 });
 
 /**

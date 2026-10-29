@@ -953,7 +953,8 @@ function update() {
 function pct(v, total) { return `${(v / total) * 100}%`; }
 
 // 크기 조절 상자 네 모서리 — 끌면 맞은편 모서리를 붙든 채 원래 비율로만 커지고 작아진다
-const RESIZE_KNOBS = ['nw', 'ne', 'sw', 'se'].map(c => `<i class="tb-rs" data-c="${c}"></i>`).join('');
+const RESIZE_KNOBS = ['nw', 'ne', 'sw', 'se'].map(c => `<i class="tb-rs" data-c="${c}"></i>`).join('') +
+  '<i class="tb-rs-del" title="Delete" aria-label="Delete"></i>'; // 오른쪽 위 빨간 동그라미 — 누르면 바로 지운다
 
 /** 캔버스가 그린 제품 위에 얹는 투명 손잡이 — 끌어서 옮긴다. 고른 것에는 크기 조절 상자(.guide)를 띄운다 */
 function syncHandles() {
@@ -1341,6 +1342,21 @@ async function runImport(i, flow, keep) {
 /**
  * 오브젝트 슬롯을 하나 더 만들어 넣는다. 누끼·크롭 팝업 없이 투명 여백만 자른다.
  */
+/**
+ * 프리뷰에서 지우기 — 오브젝트는 칸째로, 제품은 칸이 여럿이면 칸째로, 하나뿐이면 사진만 비운다 (링크·업로드 자리는 남긴다)
+ */
+function removeSlot(i) {
+  const slot = state.slots[i];
+  if (!slot) return;
+  if (slot.kind === 'product' && slotsOf('product').length === 1) slot.product = null;
+  else state.slots.splice(i, 1);
+  state.guide = false;
+  if (state.active >= state.slots.length || state.active > i) state.active = Math.max(0, state.active - 1);
+  setStatus('', false, slot.kind);
+  buildProductList();
+  update();
+}
+
 /** Product 예시 제품 하나를 n 번째 제품 칸으로 깐다 — 업로드한 제품과 똑같이 옮기고·키우고·그림자를 준다 */
 function placePresetProduct(ex, n) {
   const slot = newSlot(n);
@@ -2057,6 +2073,13 @@ canvasEl.addEventListener('click', e => {
  */
 function togglePreset(kind) {
   const on = !state.preset[kind];
+  // Product / Object 예시는 하나만 — 하나를 켜면 다른 쪽 예시는 거둔다 (둘이 겹쳐 보이지 않게)
+  const other = kind === 'product' ? 'object' : 'product';
+  if (on && state.preset[other]) {
+    state.slots = state.slots.filter(sl => sl.kind !== other);
+    state.preset[other] = false;
+    canvasEl.querySelector(`[data-example="${other}"]`)?.classList.remove('on');
+  }
   state.slots = state.slots.filter(sl => sl.kind !== kind);
   // 예시 제품을 깔지 않을 때는 빈 제품 칸이 늘 하나는 있게
   if (!(kind === 'product' && on) && !slotsOf('product').length) state.slots.unshift(newSlot(0));
@@ -2115,6 +2138,12 @@ canvasEl.addEventListener('pointerdown', e => {
     const p = toBg(e);
     gesture = { kind: 'erase', last: p };
     paintEraser(p, p);
+    return;
+  }
+  const del = e.target.closest('.tb-rs-del');
+  if (del) {
+    e.preventDefault();
+    removeSlot(Number(del.parentElement.dataset.i));
     return;
   }
   const knob = e.target.closest('.tb-rs');

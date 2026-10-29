@@ -1873,8 +1873,9 @@ function addSteppers(root) {
     if (label.querySelector('.tb-step-btn')) return;
     const anchor = input.closest('.tb-range') || input;
     const mk = (dir, text) => {
-      const b = document.createElement('button');
-      b.type = 'button';
+      // <button> 은 쓰지 않는다 — 바가 <label> 안이라 라벨의 대상이 맨 앞 − 버튼이 되어, 줄 어디에 마우스를 올려도 − 에 불이 들어왔다
+      const b = document.createElement('span');
+      b.setAttribute('role', 'button');
       b.className = 'tb-step-btn';
       b.textContent = text;
       b.setAttribute('aria-label', dir > 0 ? 'Increase' : 'Decrease');

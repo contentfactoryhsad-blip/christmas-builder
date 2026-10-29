@@ -523,6 +523,7 @@ a.tb-pill:not(.outline-brand):hover { border-color: var(--gray-400); }
 /* 가로 바 양옆 − / + — 이름 · − · 바 · + · 값 */
 .fx-slider:has(.tb-step-btn) { grid-template-columns: 56px 18px 1fr 18px 28px; gap: 4px; }
 .tb-step-btn {
+  display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box;
   width: 18px; height: 18px; padding: 0; border: 1px solid var(--gray-200); border-radius: 50%; background: #fff;
   font: 500 13px/16px sans-serif; color: var(--gray-600); cursor: pointer; user-select: none; touch-action: none;
 }

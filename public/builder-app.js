@@ -1400,6 +1400,15 @@ function placeObject(o, place, fx, erase) {
   slot.object = o;
   slot.place.scale = o.scale;
   if (place) Object.assign(slot.place, place);
+  else {
+    // 하나씩 추가할 때는 미리보기 창 정가운데에 — 어차피 원하는 곳으로 옮겨 쓴다 (예전엔 좌우로 번갈아 비켜 놓았다)
+    const asset = findAsset(state.selectedId)?.asset;
+    const st = asset?.stage, v = asset?.view;
+    if (st && v) Object.assign(slot.place, {
+      dx: v.x + v.w / 2 - st.cx,
+      dy: v.y + v.h / 2 + (st.h * o.scale) / 2 - st.bottom,
+    });
+  }
   slot.presetErase = erase || null;
   // fx 는 한 겹 깊이까지 덮는다 (wall: {…} 처럼 묶음 안의 값만 바꿔도 나머지는 기본값)
   if (fx) for (const [k, v] of Object.entries(fx)) slot.fx[k] = v && typeof v === 'object' ? { ...slot.fx[k], ...v } : v;

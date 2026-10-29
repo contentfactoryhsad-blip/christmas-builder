@@ -73,6 +73,8 @@ const PARKED_PRODUCT_TYPES = [
 /** manifest.json — 구워 둔 에셋 id → 원본 크기. 없으면 그 박스는 빈 박스. */
 let manifest = new Map();
 let exporting = false; // 사이즈 묶음을 만드는 중 — 다운로드 버튼에 n / 전체 를 보인다
+/** 바 옆 값 칸 — 바 바로 다음이 + 버튼일 수 있어서 줄 안의 output 을 찾는다 */
+const outOf = input => input.closest('.fx-slider').querySelector('output');
 
 /**
  * 톤 — 팔레트에서 에셋마다 Light 칸과 Dark 칸이 나란히 놓인다 (캡션 = 톤 아이콘 + 이름).
@@ -830,7 +832,7 @@ const TEXT_PANEL = `
 
   <div class="tb-acc-item">
     <p class="tb-acc-item-label">Position</p>
-    <label class="fx-slider"><span>Rotate</span><span class="tb-range"><i class="tb-tick"></i><input type="range" min="-45" max="45" step="0.5" data-t="rotate" /></span><output></output></label>
+    <label class="fx-slider"><span>Rotate</span><span class="tb-range"><i class="tb-tick"></i><input type="range" min="-45" max="45" step="0.25" data-t="rotate" /></span><output></output></label>
     <label class="fx-slider"><span>Slant</span><span class="tb-range"><i class="tb-tick"></i><input type="range" min="-30" max="30" data-t="slant" /></span><output></output></label>
     <button type="button" class="btn ghost full" data-act="text-reset">Reset text</button>
     <p class="hint">Drag the text on the canvas to move it.</p>
@@ -1445,7 +1447,7 @@ function syncFxPanel() {
     if (input.type === 'checkbox') input.checked = !!v;
     else {
       input.value = v;
-      input.nextElementSibling.textContent = v;
+      outOf(input).textContent = v;
     }
   });
   // 바닥 쪽 카드는 Wall 에서, 벽 카드는 Floor 에서 숨긴다
@@ -1458,7 +1460,7 @@ function syncFxPanel() {
   $('#eraseToggle').textContent = state.erasing ? 'Done erasing' : 'Paint to erase shadow';
   $('#eraseMode').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === state.eraseMode));
   $('#eraseSize').value = state.eraseSize;
-  $('#eraseSize').nextElementSibling.textContent = state.eraseSize;
+  outOf($('#eraseSize')).textContent = state.eraseSize;
   $('#eraseClear').hidden = !state.slots[state.active].eraser;
   const cursor = $('#brushCursor');
   if (cursor) cursor.classList.toggle('restore', state.eraseMode === 'restore');
@@ -1837,7 +1839,7 @@ function syncScene() {
   $('#moodPanel').classList.toggle('off', !m.on);
   document.querySelectorAll('[data-mseg="on"] button').forEach(b => b.classList.toggle('on', (b.dataset.v === 'after') === m.on));
   $('#moodSourceHint').hidden = !!moodSourceSlot();
-  document.querySelectorAll('[data-m]').forEach(input => { input.value = m[input.dataset.m]; input.nextElementSibling.textContent = m[input.dataset.m]; });
+  document.querySelectorAll('[data-m]').forEach(input => { input.value = m[input.dataset.m]; outOf(input).textContent = m[input.dataset.m]; });
 }
 
 // ── 이벤트: 팔레트 · 기능 박스 ────────────────────────────
@@ -1850,6 +1852,57 @@ $('#palette').addEventListener('click', e => {
 });
 
 const editBody = $('#editBody');
+
+/**
+ * 가로 바 양옆 − / + — 누르면 한 칸씩, 누르고 있으면 계속. 바가 새로 그려질 때마다 붙인다 (Edit panel 을 다시 그리면 사라지니까)
+ * 눌러서 바꿀 때는 기본값 막대에 붙는 동작(snap)을 끈다 — 기본값 바로 옆 칸으로도 갈 수 있게
+ */
+let stepping = false;
+function addSteppers(root) {
+  root.querySelectorAll('.fx-slider input[type=range]').forEach(input => {
+    const label = input.closest('.fx-slider');
+    if (label.querySelector('.tb-step-btn')) return;
+    const anchor = input.closest('.tb-range') || input;
+    const mk = (dir, text) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'tb-step-btn';
+      b.textContent = text;
+      b.setAttribute('aria-label', dir > 0 ? 'Increase' : 'Decrease');
+      b.dataset.dir = dir;
+      return b;
+    };
+    anchor.before(mk(-1, '−'));
+    anchor.after(mk(1, '+'));
+  });
+}
+function nudge(input, dir) {
+  const before = input.value;
+  dir > 0 ? input.stepUp() : input.stepDown();
+  if (input.value === before) return;
+  stepping = true;
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  stepping = false;
+}
+let holdTimer = null;
+editBody.addEventListener('pointerdown', e => {
+  const b = e.target.closest('.tb-step-btn');
+  if (!b) return;
+  e.preventDefault(); // 라벨 안이라 바에 포커스·클릭이 넘어가지 않게
+  const input = b.closest('.fx-slider').querySelector('input[type=range]');
+  if (input.disabled) return;
+  const dir = Number(b.dataset.dir);
+  nudge(input, dir);
+  let delay = 400;
+  const repeat = () => { nudge(input, dir); delay = Math.max(40, delay * 0.8); holdTimer = setTimeout(repeat, delay); };
+  holdTimer = setTimeout(repeat, delay);
+  const stop = () => { clearTimeout(holdTimer); window.removeEventListener('pointerup', stop); window.removeEventListener('pointercancel', stop); };
+  window.addEventListener('pointerup', stop);
+  window.addEventListener('pointercancel', stop);
+});
+// 라벨 안 버튼을 눌러도 라벨이 바를 누른 것처럼 처리하지 않게
+editBody.addEventListener('click', e => { if (e.target.closest('.tb-step-btn')) e.preventDefault(); }, true);
+new MutationObserver(() => addSteppers(editBody)).observe(editBody, { childList: true, subtree: true });
 
 // Copy 패널 입력 — 다시 그릴 때마다 묶지 않도록 editBody 에 한 번만 건다 (안에서 .cc 만 본다)
 bindCopyPanel(editBody, state.copy, () => { renderEdit(); renderSlots(); }, () => renderSlots());
@@ -1994,7 +2047,7 @@ editBody.addEventListener('input', e => {
     const k = t.dataset.t;
     tx[k] = t.type === 'range' ? Number(t.value) : t.value;
     // 기본값 막대 근처(폭의 2%)에 오면 기본값에 딱 붙인다 — 움직여도 원래 값으로 쉽게 돌아오게
-    if (t.type === 'range') {
+    if (t.type === 'range' && !stepping) {
       const d = textDefault(k);
       if (d != null && Math.abs(tx[k] - d) <= (t.max - t.min) * 0.02) { tx[k] = d; t.value = d; }
     }

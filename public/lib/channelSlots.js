@@ -30,8 +30,8 @@ function iconImage(id, style, size) {
   if (!iconCache.has(k)) {
     const img = new Image();
     img.onload = () => iconRedraw();
-    // 배너 위 아이콘은 불투명하게 — Solid 의 동그란 바탕(opacity 0.8)도 꽉 채운다
-    const svg = iconSvg(id, style, size).replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ').replace(/ opacity="0\.8"/g, '');
+    // 투명도는 Figma 아이콘 그대로 (Solid 의 동그란 바탕 opacity 0.8)
+    const svg = iconSvg(id, style, size).replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ');
     img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
     iconCache.set(k, img);
   }

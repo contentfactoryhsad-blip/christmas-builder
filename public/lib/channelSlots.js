@@ -11,6 +11,81 @@
  * 줄 높이는 Figma 와 같이 글자 크기의 106%, CTA 는 100%.
  */
 import { SLOT_DATA } from './channelSlotData.js';
+import { ICON_LIST, iconSvg, splitLabel } from './icons.js';
+
+/*
+  아이콘 줄 — LG.com 히어로 두 사이즈(ST0001 1920×720 · 720×960)에만. 자리는 블프 빌더 lgcomSlots.ts 와 같다.
+  Copy 패널의 Icons 를 켜면 그린다 (종류 Solid/Line · 색 · 1~3 개 · 아이콘·캡션). LG.com 다운로드에도 남는다
+*/
+const ICON_ROWS = {
+  'lgcom-ST0001-pc-1920x720': { x: 240, y: 486, w: 424, h: 60 },
+  'lgcom-ST0001-mo-720x960': { x: 34, y: 762, w: 510, h: 72 },
+};
+const iconCache = new Map();
+let iconRedraw = () => {};
+/** 아이콘 SVG 를 처음 읽으면 다시 그리게 — builder-app 이 renderSlots 를 넘긴다 */
+export const onIconLoad = fn => { iconRedraw = fn; };
+function iconImage(id, style, size) {
+  const k = `${id}|${style}`;
+  if (!iconCache.has(k)) {
+    const img = new Image();
+    img.onload = () => iconRedraw();
+    // 배너 위 아이콘은 불투명하게 — Solid 의 동그란 바탕(opacity 0.8)도 꽉 채운다
+    const svg = iconSvg(id, style, size).replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" ').replace(/ opacity="0\.8"/g, '');
+    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+    iconCache.set(k, img);
+  }
+  const img = iconCache.get(k);
+  return img.complete && img.naturalWidth ? img : null;
+}
+
+/** 블프 IconRowInline 을 캔버스로 — 비율은 모두 줄 높이에서 나온다 */
+function drawIconRow(ctx, box, ic) {
+  const kind = ic.kind === 'line' ? 'line' : 'solid';
+  const style = `${kind}-${ic.color}`;
+  const isWhite = ic.color === 'white', isLine = kind === 'line';
+  const h = box.h, fs = h * 0.2333, lh = fs * 1.14;
+  const gap = isLine ? h * 0.195 : h * 0.293;
+  const itemGap = isLine ? 0 : h * 0.1667;
+  const ink = isWhite ? '#FFFFFF' : '#141414', halo = isWhite ? '#000000' : '#FFFFFF';
+  const items = ic.ids[kind].slice(0, ic.count).map((id, i) => ({ id, item: ICON_LIST.find(x => x.id === id), custom: ic.labels[kind][i]?.trim() || null })).filter(x => x.item);
+  ctx.save();
+  ctx.font = `600 ${fs}px "LGEI Text", sans-serif`;
+  ctx.letterSpacing = `${fs * 0.02}px`;
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+  let x = box.x;
+  const cy = box.y + h / 2;
+  // Line 은 줄 전체에 흐린 테두리(drop-shadow), Solid 는 글자에만 — 블프와 같은 효과를 두 겹 그림자로
+  const shadow = (blur) => { ctx.shadowColor = halo; ctx.shadowBlur = blur * Math.hypot(ctx.getTransform().a, ctx.getTransform().b); };
+  items.forEach(({ id, item, custom }, i) => {
+    const [l1, l2] = custom?.includes('\n') ? [custom.split('\n')[0], custom.split('\n').slice(1).join(' ')] : splitLabel(custom ?? item.label);
+    const img = iconImage(id, style, 60);
+    for (const blur of isLine ? [h * 0.061, h * 0.183] : [0]) {
+      if (isLine) shadow(blur); else ctx.shadowBlur = 0;
+      if (img) ctx.drawImage(img, x, box.y, h, h);
+    }
+    let tx = x + h + itemGap;
+    const lines = l2 ? [l1, l2] : [l1];
+    const top = cy - (lines.length * lh) / 2 + lh / 2;
+    for (const blur of isLine ? [h * 0.061, h * 0.183] : [h * 0.366, h * 0.122]) {
+      shadow(blur);
+      ctx.fillStyle = ink;
+      lines.forEach((t, n) => ctx.fillText(t, tx, top + n * lh));
+    }
+    ctx.shadowBlur = 0;
+    const tw = Math.max(...lines.map(t => ctx.measureText(t).width));
+    x = tx + tw + (isLine ? h * 0.1 : 0);
+    if (isLine && i < items.length - 1) {
+      x += gap;
+      const dl = h * 0.6667, dt = Math.max(1, h * 0.0167);
+      for (const blur of [h * 0.061, h * 0.183]) { shadow(blur); ctx.fillStyle = ink; ctx.fillRect(x, cy - dl / 2, dt, dl); }
+      ctx.shadowBlur = 0;
+      x += dt + gap;
+    } else x += gap;
+  });
+  ctx.restore();
+}
 
 // 다크 톤 — 라이트 KV 의 베이지(#9c9185 등)로 칠한 바탕·그라데이션을 다크 KV 의 같은 자리 색으로 바꾼다
 // (#182a24 — 라이트 KV 에서 그 색인 자리들을 다크 KV 에서 읽은 평균, 자리마다 차이 ±3 안쪽). 검정은 그대로
@@ -175,6 +250,9 @@ export function drawSlot(ctx, slot, art, cs, tone = 'light', opts = {}) {
     ctx.textBaseline = 'middle';
     ctx.fillText(val('cta'), bx + bw / 2, by + fh / 2 + b.sz * 0.04);
   }
+
+  // 아이콘 줄 — LG.com 히어로 두 사이즈만, Copy 패널에서 Icons 를 켰을 때
+  if (ICON_ROWS[slot.key] && cs.icon && cs.icon.kind !== 'none') drawIconRow(ctx, ICON_ROWS[slot.key], cs.icon);
 
   // Disclaimer — 바닥 기준, 흰 빛과 검은 그림자 두 겹
   if (slot.disc && show.disclaimer) {

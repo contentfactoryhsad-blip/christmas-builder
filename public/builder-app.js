@@ -20,7 +20,7 @@ import { blobToDataUrl, loadImage, trimTransparent } from './lib/productApi.js';
 import { importFromUrl, importFromFile, editProduct } from './lib/productImportFlow.js';
 import { DEFAULT_FX, cloneFx, createBackground, drawComposite } from './lib/composite.js';
 import { newCopyState, renderCopyPanel, bindCopyPanel } from './lib/channelCopy.js';
-import { slotsForChannel, drawSlot, logosReady } from './lib/channelSlots.js';
+import { slotsForChannel, drawSlot, logosReady, onIconLoad } from './lib/channelSlots.js';
 import { captureHubCountry, logUsage, makeThumb, thumbName, newOutputId, uploadOutput } from './lib/usageClient.js';
 
 captureHubCountry();
@@ -568,6 +568,9 @@ function channelPicker() {
  */
 // 매체 사이즈 미리보기 — 매체 목록 전부 공개 (ALL 은 모든 매체를 이어 붙인다). 숨길 매체는 여기서 빼면 된다
 const SHOW_SLOTS = true;
+// LG.com 은 히어로 두 장(1920×720 → 720×960)을 맨 앞에
+const HERO_PC = 'lgcom-ST0001-pc-1920x720', HERO_MO = 'lgcom-ST0001-mo-720x960';
+const heroFirst = list => [...list.filter(s => s.key === HERO_PC), ...list.filter(s => s.key === HERO_MO), ...list.filter(s => s.key !== HERO_PC && s.key !== HERO_MO)];
 const PUBLIC_SLOTS = new Set(CHANNEL_ROWS.flat().map(c => c.key).filter(k => k !== 'all'));
 let slotsQueued = false;
 function renderSlots() {
@@ -583,25 +586,29 @@ function renderSlots() {
     if (!on) return;
     const board = hit.asset.banner ? 'main' : 'product';
     const slots = state.channel === 'all'
-      ? [...PUBLIC_SLOTS].flatMap(k => slotsForChannel(k, board))
-      : PUBLIC_SLOTS.has(state.channel) ? slotsForChannel(state.channel, board) : [];
+      ? [...PUBLIC_SLOTS].flatMap(k => heroFirst(slotsForChannel(k, board)))
+      : PUBLIC_SLOTS.has(state.channel) ? heroFirst(slotsForChannel(state.channel, board)) : [];
     if (!slots.length) {
       box.innerHTML = '<p class="tb-slots-empty">Sizes for this channel are coming soon.</p>';
       box.dataset.keys = '';
       return;
     }
     const dpr = Math.min(2, window.devicePixelRatio || 1);
-    const keys = `${board}|${dpr}|${slots.map(sl => sl.key).join()}`;
+    // LG.com 히어로 두 장(1920×720 · 720×960)은 같은 높이로 한 줄에 나란히 — 미리보기 폭에 꽉 차게
+    const avail = Math.min(1200, box.clientWidth || 900);
+    const heroH = Math.min(720, (avail - 16) / (1920 / 720 + 720 / 960));
+    const keys = `${board}|${dpr}|${Math.round(heroH)}|${slots.map(sl => sl.key).join()}`;
     if (box.dataset.keys !== keys) {
       box.dataset.keys = keys;
       box.innerHTML = slots.map((sl, i) => {
-        const k = Math.min(1, 360 / Math.max(sl.w, sl.h));
+        const hero = sl.key === HERO_PC || sl.key === HERO_MO;
+        const k = hero ? heroH / sl.h : Math.min(1, 360 / Math.max(sl.w, sl.h));
         const head = state.channel === 'all' && sl.label !== slots[i - 1]?.label ? `<p class="tb-slots-group">${esc(sl.label)}</p>` : '';
         return `${head}
         <figure class="tb-slot">
           <canvas width="${Math.round(sl.w * k * dpr)}" height="${Math.round(sl.h * k * dpr)}" data-slot="${sl.key}" style="width:${sl.w * k}px"></canvas>
           <figcaption>${sl.key}</figcaption>
-        </figure>`;
+        </figure>${sl.key === HERO_MO ? '<div class="tb-slots-break"></div>' : ''}`;
       }).join('');
     }
     const art = hit.asset.banner
@@ -616,7 +623,8 @@ function renderSlots() {
   });
 }
 // 배너 글꼴·로고가 늦게 읽히면 한 번 더
-Promise.all([document.fonts.load('600 20px "LGEI Headline"'), document.fonts.load('400 20px "LGEI Text"'), logosReady()]).then(() => renderSlots());
+Promise.all([document.fonts.load('600 20px "LGEI Headline"'), document.fonts.load('400 20px "LGEI Text"'), document.fonts.load('600 20px "LGEI Text"'), logosReady()]).then(() => renderSlots());
+onIconLoad(() => renderSlots());
 
 function renderEdit() {
   const hit = findAsset(state.selectedId);

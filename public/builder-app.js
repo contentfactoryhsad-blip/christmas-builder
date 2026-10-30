@@ -183,7 +183,7 @@ const CHANNEL_ROWS = [
 ].map(row => row.map(label => ({ key: label.toLowerCase().replace(/[^a-z0-9]+/g, '-'), label })));
 
 // 헤더 Working Files 버튼 링크 — 비어 있으면 흐린 채로 눌리지 않는다
-const WORKING_FILES_URL = 'https://f.io/17EkEgX8';
+const WORKING_FILES_URL = 'https://f.io/riQXdmPp';
 
 /** 상단 스텝 — 누르면 그 화면으로 간다. 3 은 매체 고르기와 카피 편집을 같이 한다 */
 const STEPS = ['Select Visual Type', 'Image Edit', 'Select Channel & Edit Copy'];

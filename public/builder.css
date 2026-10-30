@@ -428,7 +428,7 @@ a.tb-pill:not(.outline-brand):hover { border-color: var(--gray-400); }
 .tb-slots { margin: 24px auto 0; max-width: 1200px; display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 20px 16px; }
 .tb-slots[hidden] { display: none; }
 .tb-slot { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
-.tb-slot canvas { display: block; height: auto; border-radius: 2px; box-shadow: 0 1px 3px rgb(0 0 0 / .12); background: #fff; }
+.tb-slot canvas { display: block; height: auto; border-radius: 0; box-shadow: 0 1px 3px rgb(0 0 0 / .12); background: #fff; }
 .tb-slot figcaption { font-size: 11px; color: #8A8078; }
 .tb-slots-empty { margin: 0; padding: 24px 0; font-size: 13px; color: #8A8078; }
 

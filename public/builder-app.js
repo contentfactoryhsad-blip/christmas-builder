@@ -861,9 +861,14 @@ function selectAsset(id) {
 let selectTicket = 0;
 
 function commitSelect(id, bg) {
+  // 다른 비주얼 타입(Main Theme ↔ Product Type)으로 바꾸면 2 단계(Image Edit)부터 — 새 이미지를 먼저 손보게.
+  // 같은 타입의 Light ↔ Dark 는 보던 단계 그대로. 카피(state.copy)와 고른 매체는 어느 쪽이든 그대로 둔다
+  const prevGroup = findAsset(state.selectedId)?.group.key;
+  const nextGroup = findAsset(id)?.group.key;
+  const sameType = prevGroup && prevGroup === nextGroup;
   state.selectedId = id;
   if (bg) applyStage(bg);
-  state.step = state.channel ? 2 : 1;
+  state.step = state.channel && sameType ? Math.max(state.step, 1) : 1;
   state.erasing = false;
   state.sampling = false;
   state.picking = null;

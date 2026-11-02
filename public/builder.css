@@ -6,8 +6,8 @@ body.tb { display: flex; flex-direction: column; height: 100vh; overflow: hidden
 
 /* ── 헤더 ───────────────────────────────────────────── */
 .tb-header { position: relative; flex-shrink: 0; gap: 16px; }
-.tb-header .brand { color: inherit; text-decoration: none; border-radius: 6px; transition: opacity .15s; }
-.tb-header .brand:hover { opacity: .7; }
+.tb-header .brand-link { display: flex; color: inherit; text-decoration: none; border-radius: 6px; transition: opacity .15s; }
+.tb-header .brand-link:hover { opacity: .7; }
 .tb-head-left { display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
 .tb-back {
   display: inline-flex; align-items: center; gap: 8px;

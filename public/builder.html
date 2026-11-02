@@ -27,11 +27,12 @@
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span>Back</span>
       </button>
-      <a class="brand" href="builder.html" aria-label="Home">
-        <img src="lg-logo.svg" alt="LG" />
+      <!-- LG 로고는 Builder Hub 로, 이름은 이 빌더 첫 화면으로 -->
+      <div class="brand">
+        <a class="brand-link" href="https://builder-hub.lge-d2c.com" aria-label="Builder Hub" title="Builder Hub"><img src="lg-logo.svg" alt="LG" /></a>
         <span class="divider"></span>
-        <span class="title">Christmas Builder</span>
-      </a>
+        <a class="brand-link title" href="builder.html" aria-label="Home">Christmas Builder</a>
+      </div>
     </div>
 
     <div class="tb-steps" id="steps"></div>

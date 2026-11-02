@@ -21,6 +21,10 @@ const ICON_ROWS = {
   'lgcom-ST0001-pc-1920x720': { x: 240, y: 486, w: 424, h: 60 },
   'lgcom-ST0001-mo-720x960': { x: 34, y: 762, w: 510, h: 72 },
 };
+/*
+  카피 없는 사이즈 — 로고·카피·CTA·고지문 없이 배경(+그라데이션)만. 세일즈 배너 빌더와 같은 판들 (Figma 에서도 카피 인스턴스를 숨겼다, 2026-11-02)
+*/
+const NO_COPY = new Set(['telus-health-1080x720', 'telus-health-1000x1000', 'plna-penezenka-330x135', 'taiwan-affiliate-1500x1000']);
 const iconCache = new Map();
 let iconRedraw = () => {};
 /** 아이콘 SVG 를 처음 읽으면 다시 그리게 — builder-app 이 renderSlots 를 넘긴다 */
@@ -153,6 +157,7 @@ export const logosReady = () => Promise.all(Object.keys(LOGOS).map(id => {
  * opts.imageOnly: LG.com 다운로드용 — 카피·CTA 없이 (이미지 업로드 가이드: 아이콘·디스클레이머만 남긴다)
  */
 export function drawSlot(ctx, slot, art, cs, tone = 'light', opts = {}) {
+  if (NO_COPY.has(slot.key)) slot = { ...slot, logo: null, rows: [], cta: null, disc: null };
   const { w: W, h: H } = slot;
   const show = cs.show;
   const val = k => (cs.copy[k] ?? '').trim() || PLACEHOLDER[k];

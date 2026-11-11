@@ -209,8 +209,19 @@ const OBJECTS = [
   { id: 'ornament3', label: 'Ornament 3', src: 'object/ornament3.png', scale: 0.4 },
 ];
 
+/**
+ * UPLOAD IMAGE — 사용자가 올린 완성 정사각 한 장 (BF ContentTemplateBuilder 의 업로드와 같다).
+ * Main Theme 배너처럼 #bannerComp 에 그려 'main' 보드 자리로 사이즈를 만든다. 합성(제품·오브젝트·지우개)은 없다.
+ * 톤은 light, 글자는 빈 값이라 텍스트 층은 그리지 않는다. 팔레트 타일(Light·Dark 짝)로는 나오지 않는다 — groupsFor 밖
+ */
+const UPLOAD_ID = 'upload';
+const UPLOAD_GROUP = { key: 'upload', label: 'Upload Image' };
+let uploadAsset = null; // 올리기 전엔 null — { id, base, label, tone, custom, art, banner: { src: dataURL, w, h }, size, text }
+const bannerSrc = a => (a.custom ? a.banner.src : `${ASSET_DIR}/${a.banner.src}`);
+
 const findAsset = id => {
   if (!id) return null;
+  if (id === UPLOAD_ID) return uploadAsset ? { asset: uploadAsset, group: UPLOAD_GROUP } : null;
   for (const g of groupsFor()) {
     const a = g.assets.find(x => x.id === id);
     if (a) return { asset: a, group: g };
@@ -469,7 +480,75 @@ function renderPalette() {
             <span class="tb-caption tb-tone tb-tone-${a.tone}"><span class="tb-tone-dot">${toneOf(a.tone).icon}</span>${toneOf(a.tone).label}</span>
           </button>`).join('')}
       </div>
-    </section>`).join('');
+    </section>`).join('') + uploadSection();
+}
+
+const UPLOAD_ICON = '<svg width="16" height="16" viewBox="0 0 14 14" fill="none"><path d="M7 9V1M4 4l3-3 3 3M2 11h10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+/**
+ * 팔레트 맨 아래 UPLOAD IMAGE — BF 빌더와 같은 모양·문구. 올린 뒤에는 썸네일(.tb-cell, 다른 타일처럼 눌러서 고른다) + Replace.
+ * 오른쪽 ! Creation Guide 에 올리면 Safe Area 안내 카드가 뜬다
+ */
+function uploadSection() {
+  const sel = state.selectedId === UPLOAD_ID;
+  const tile = `style="height:auto;aspect-ratio:${TILE_RATIO}"`;
+  return `
+    <section class="tb-group tb-upload">
+      <div>
+        <p class="tb-group-label">UPLOAD IMAGE</p>
+        <p class="tb-upload-sub">Please upload your finished image.</p>
+      </div>
+      <input type="file" accept="image/*" id="uploadInput" hidden />
+      <div class="tb-upload-row">
+        ${uploadAsset ? `
+          <div class="tb-upload-done">
+            <button type="button" class="tb-cell${sel ? ' selected' : ''}" data-id="${UPLOAD_ID}">
+              <span class="tb-tile has-art tb-upload-thumb" ${tile}><img src="${uploadAsset.banner.src}" alt="Uploaded image" draggable="false" /></span>
+            </button>
+            <button type="button" class="tb-upload-replace" data-act="upload-pick">Replace</button>
+          </div>` : `
+          <button type="button" class="tb-upload-box" data-act="upload-pick" ${tile}>
+            ${UPLOAD_ICON}<span>3000×3000</span>
+          </button>`}
+        <div class="tb-upload-help">
+          <span class="tb-upload-bang">!</span>
+          <span class="tb-upload-guide">Creation Guide</span>
+          <div class="tb-upload-card">
+            <p class="title">Safe Area (center 1080 × 1080px of 3000 × 3000px)</p>
+            <p class="body">Keep the main visual inside the Safe Area so the image is not cropped when varied across sizes.</p>
+          </div>
+        </div>
+      </div>
+    </section>`;
+}
+
+/** 올린 파일 — dataURL 로 읽고, 정사각(오차 1%)만 받는다. 받으면 바로 고른다 (BF handleUploadFile 과 같다) */
+function handleUploadFile(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    const url = String(reader.result);
+    const img = new Image();
+    img.onload = () => {
+      const w = img.naturalWidth, h = img.naturalHeight;
+      // Main 보드 자리는 정사각을 놓는다 — 아니면 찌그러진다
+      if (Math.abs(w - h) > w * 0.01) {
+        window.alert('Please upload a square image (3000×3000).');
+        return;
+      }
+      uploadAsset = {
+        id: UPLOAD_ID, base: UPLOAD_ID, label: 'Uploaded Image', tone: 'light', custom: true, art: true,
+        banner: { src: url, w, h }, size: [w, h], text: { value: '' },
+      };
+      // 바꿔 올리면 예전 판은 버린다 — loadBanner 가 새 그림으로 다시 읽는다
+      if (state.banner?.assetId === UPLOAD_ID) state.banner = null;
+      state.texts[UPLOAD_ID] = newText(uploadAsset);
+      if (state.selectedId === UPLOAD_ID) commitSelect(UPLOAD_ID, null);
+      else selectAsset(UPLOAD_ID);
+    };
+    img.onerror = () => window.alert('That file could not be read as an image.');
+    img.src = url;
+  };
+  reader.readAsDataURL(file);
 }
 
 function renderCanvas() {
@@ -496,14 +575,14 @@ function renderCanvas() {
         <div class="tb-preview-art" style="aspect-ratio:${viewRatio(asset)}">
           <canvas id="bannerView" hidden></canvas>
           <div class="tb-banner" style="${board}">
-            <img src="${ASSET_DIR}/${asset.banner.src}" alt="${esc(asset.label)}" draggable="false" />
+            <img src="${bannerSrc(asset)}" alt="${esc(asset.label)}" draggable="false" />
             <canvas id="bannerComp" width="${asset.banner.w}" height="${asset.banner.h}" hidden></canvas>
             <div class="tb-banner-overlay" id="bannerOverlay"><div class="tb-text-box" id="textBox" title="Drag to move"></div></div>
           </div>
         </div>
         <div class="tb-preview-foot">
           <p class="name">${esc(asset.label)}</p>
-          <p class="meta">${esc(group.label)} · ${toneOf(asset.tone).label}</p>
+          <p class="meta">${esc(group.label)}${asset.custom ? ` · ${asset.size[0]} × ${asset.size[1]}` : ` · ${toneOf(asset.tone).label}`}</p>
         </div>
       </div>
       ${channelPicker()}`;
@@ -647,13 +726,15 @@ function renderEdit() {
   }
   const { asset, group } = hit;
   if (asset.banner) {
+    // 업로드 컷은 완성본 그대로 — Text 박스 없이 원본 프레임만
     $('#editBody').innerHTML = `
       <div class="tb-edit-asset">
         <p class="name">${esc(asset.label)}</p>
-        <p class="meta">${esc(group.label)} · ${toneOf(asset.tone).label} · ${asset.size[0]} × ${asset.size[1]}</p>
-        <div class="tb-edit-frame" style="aspect-ratio:${asset.banner.w} / ${asset.banner.h}"><img src="${ASSET_DIR}/${asset.banner.src}" alt="${esc(asset.label)}" draggable="false" /><canvas id="bannerFull" hidden></canvas></div>
+        <p class="meta">${esc(group.label)}${asset.custom ? '' : ` · ${toneOf(asset.tone).label}`} · ${asset.size[0]} × ${asset.size[1]}</p>
+        <div class="tb-edit-frame" style="aspect-ratio:${asset.banner.w} / ${asset.banner.h}"><img src="${bannerSrc(asset)}" alt="${esc(asset.label)}" draggable="false" /><canvas id="bannerFull" hidden></canvas></div>
+        ${asset.custom ? '<p class="hint tb-upload-note">Your uploaded image is used as is. Press OK under the preview to pick channels.</p>' : ''}
       </div>
-      ${BANNER_SECTIONS.map(sec => `
+      ${asset.custom ? '' : BANNER_SECTIONS.map(sec => `
         <section class="tb-acc${state.open.has(sec.key) ? ' open' : ''}${PINNED.has(sec.key) ? ' pinned' : ''}" data-key="${sec.key}">
           <button type="button" class="tb-acc-head" aria-expanded="${state.open.has(sec.key)}">
             <span class="tb-acc-text">
@@ -1184,7 +1265,7 @@ async function loadBanner(asset) {
   try {
     const t = state.texts[asset.base];
     const [img] = await Promise.all([
-      loadImage(`${ASSET_DIR}/${asset.banner.src}`),
+      loadImage(bannerSrc(asset)),
       document.fonts.load(fontSpec(t, 64), t.value).catch(() => null),
     ]);
     if (state.selectedId !== asset.id) return;
@@ -1884,10 +1965,18 @@ function syncScene() {
 // ── 이벤트: 팔레트 · 기능 박스 ────────────────────────────
 
 $('#palette').addEventListener('click', e => {
+  if (e.target.closest('[data-act="upload-pick"]')) { $('#uploadInput')?.click(); return; }
   const cell = e.target.closest('.tb-cell');
   if (!cell) return;
   // 같은 타일을 다시 누르면 선택 해제 (BF 와 동일)
   selectAsset(state.selectedId === cell.dataset.id ? null : cell.dataset.id);
+});
+
+$('#palette').addEventListener('change', e => {
+  if (e.target.id !== 'uploadInput') return;
+  const f = e.target.files?.[0];
+  if (f) handleUploadFile(f);
+  e.target.value = '';
 });
 
 const editBody = $('#editBody');
@@ -2394,6 +2483,7 @@ document.addEventListener('keydown', e => {
 /** 받는 파일 이름 앞부분 — christmas-<maintheme|producttype>-<light|dark> */
 function fileStem() {
   const hit = findAsset(state.selectedId);
+  if (hit?.asset.custom) return 'christmas-upload';
   const type = (hit?.group.label || 'visual').toLowerCase().replace(/[^a-z0-9]+/g, '');
   return `christmas-${type}-${hit?.asset.tone || 'light'}`;
 }

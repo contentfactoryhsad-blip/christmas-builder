@@ -117,6 +117,41 @@ a.tb-pill:not(.outline-brand):hover { border-color: var(--gray-400); }
 .tb-caption { min-height: 12px; font-size: 10px; line-height: 12px; text-align: center; color: var(--gray-600); transition: color .15s; }
 .tb-cell.selected .tb-caption { color: var(--brand); font-weight: 500; }
 
+/* UPLOAD IMAGE — 팔레트 맨 아래 (BF 빌더와 같은 모양). 상자·썸네일은 타일과 같은 140 × 타일 높이 */
+.tb-upload { gap: 6px; }
+.tb-upload-sub { margin: 2px 0 0; padding: 0 4px; font-size: 11px; color: var(--gray-400); }
+/* 안내 카드가 줄 기준으로 붙도록 relative — 팔레트가 가로로 넘치는 것을 자른다 */
+.tb-upload-row { position: relative; display: flex; align-items: center; gap: 12px; }
+.tb-upload-box {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  width: 140px; flex-shrink: 0; padding: 0; border-radius: 4px;
+  border: 1px dashed var(--gray-300); background: none; color: var(--gray-400);
+  font: inherit; cursor: pointer; transition: border-color .15s, color .15s;
+}
+.tb-upload-box span { font-size: 10px; line-height: 1; }
+.tb-upload-box:hover { border-color: var(--brand); color: var(--brand); }
+.tb-upload-done { display: flex; flex-direction: column; gap: 4px; width: 140px; flex-shrink: 0; }
+.tb-upload-thumb { background: #111; }
+.tb-upload-replace { align-self: flex-start; padding: 0 4px; border: 0; background: none; font: inherit; font-size: 11px; color: var(--gray-400); cursor: pointer; }
+.tb-upload-replace:hover { color: var(--gray-700); }
+.tb-upload-help { display: flex; align-items: center; gap: 6px; cursor: help; user-select: none; }
+.tb-upload-bang {
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--gray-400); box-sizing: border-box;
+  color: var(--gray-400); font-size: 15px; font-weight: 700; line-height: 1;
+}
+.tb-upload-guide { font-size: 11px; color: var(--gray-500); }
+/* 제목 한 줄이 카드 폭을 정하고 본문은 그 폭에 맞춰 접힌다 (본문 width 0 + min-width 100%) */
+.tb-upload-card {
+  display: none; position: absolute; bottom: 100%; left: 0; z-index: 50; margin-bottom: 8px;
+  width: max-content; max-width: 100%; box-sizing: border-box; padding: 12px;
+  background: #fff; border: 1px solid var(--gray-200); border-radius: 12px; box-shadow: 0 10px 24px rgb(0 0 0 / .14);
+}
+.tb-upload-help:hover .tb-upload-card { display: block; }
+.tb-upload-card .title { margin: 0 0 2px; font-size: 11px; font-weight: 600; color: var(--gray-900); }
+.tb-upload-card .body { margin: 0; width: 0; min-width: 100%; font-size: 11px; line-height: 1.375; color: var(--gray-600); }
+.tb-upload-note { margin-top: 12px; }
+
 /* 캔버스 */
 .tb-canvas { flex: 1; overflow-y: auto; padding: 24px; background: var(--canvas); }
 .tb-empty { height: 100%; display: flex; align-items: center; justify-content: center; padding: 0 48px; text-align: center; }

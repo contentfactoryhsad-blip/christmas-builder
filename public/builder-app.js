@@ -522,6 +522,23 @@ function uploadSection() {
     </section>`;
 }
 
+/** 그림 가장자리 평균색 (#RRGGBB) — 64² 로 줄여 테두리 한 줄씩 (BF sampleEdgeColor 와 같다) */
+function edgeColor(img) {
+  try {
+    const N = 64;
+    const c = document.createElement('canvas');
+    c.width = c.height = N;
+    const ctx = c.getContext('2d');
+    ctx.drawImage(img, 0, 0, N, N);
+    const d = ctx.getImageData(0, 0, N, N).data;
+    let r = 0, g = 0, b = 0, n = 0;
+    const px = (x, y) => { const i = (y * N + x) * 4; r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; };
+    for (let i = 0; i < N; i++) { px(i, 0); px(i, N - 1); px(0, i); px(N - 1, i); }
+    const hex = v => Math.round(v / n).toString(16).padStart(2, '0');
+    return `#${hex(r)}${hex(g)}${hex(b)}`.toUpperCase();
+  } catch { return '#000000'; }
+}
+
 /** 올린 파일 — dataURL 로 읽고, 정사각(오차 1%)만 받는다. 받으면 바로 고른다 (BF handleUploadFile 과 같다) */
 function handleUploadFile(file) {
   const reader = new FileReader();
@@ -535,9 +552,12 @@ function handleUploadFile(file) {
         window.alert('Please upload a square image (3000×3000).');
         return;
       }
+      // ground: 사이즈 판의 바탕색 — KV 용 베이지·그라데이션 대신 (channelSlots.js drawSlot opts.ground)
       uploadAsset = {
         id: UPLOAD_ID, base: UPLOAD_ID, label: 'Uploaded Image', tone: 'light', custom: true, art: true,
-        banner: { src: url, w, h }, size: [w, h], text: { value: '' },
+        banner: { src: url, w, h }, size: [w, h], text: { value: '' }, ground: edgeColor(img),
+        // 미리보기는 에셋처럼 가운데를 2:1 로 줌 (Main Theme view 와 같은 크기) — 3000² 전체는 Edit panel 에서 본다
+        view: { x: 0.2734, y: 0.3867, w: 0.4532, h: 0.2266 },
       };
       // 바꿔 올리면 예전 판은 버린다 — loadBanner 가 새 그림으로 다시 읽는다
       if (state.banner?.assetId === UPLOAD_ID) state.banner = null;
@@ -704,7 +724,7 @@ function renderSlots() {
       const c = box.querySelector(`[data-slot="${sl.key}"]`);
       const ctx = c.getContext('2d');
       ctx.setTransform(c.width / sl.w, 0, 0, c.height / sl.h, 0, 0);
-      drawSlot(ctx, sl, art, state.copy, hit.asset.tone);
+      drawSlot(ctx, sl, art, state.copy, hit.asset.tone, { ground: hit.asset.ground });
     });
   });
 }
@@ -2542,7 +2562,7 @@ async function downloadSlots() {
           const c = document.createElement('canvas');
           c.width = sl.w;
           c.height = sl.h;
-          drawSlot(c.getContext('2d'), sl, art, state.copy, hit.asset.tone, { imageOnly: key === 'lg-com' });
+          drawSlot(c.getContext('2d'), sl, art, state.copy, hit.asset.tone, { imageOnly: key === 'lg-com', ground: hit.asset.ground });
           const blob = await new Promise(r => c.toBlob(r, 'image/png'));
           (keys.length > 1 ? zip.folder(folder) : zip).file(`${name}.png`, blob);
           pngs.push({ name: thumbName(name), blob });

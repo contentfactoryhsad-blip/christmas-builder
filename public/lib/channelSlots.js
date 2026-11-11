@@ -13,6 +13,7 @@
 import { SLOT_DATA } from './channelSlotData.js';
 import { ICON_LIST, iconSvg, splitLabel } from './icons.js';
 import { COPY_PLACEHOLDER } from './channelCopy.js';
+import { UPLOAD_ART } from './uploadArt.js';
 
 /*
   아이콘 줄 — LG.com 히어로 두 사이즈(ST0001 1920×720 · 720×960)에만. 자리는 블프 빌더 lgcomSlots.ts 와 같다.
@@ -212,7 +213,8 @@ export function drawSlot(ctx, slot, art, cs, tone = 'light', opts = {}) {
   ctx.clearRect(0, 0, W, H);
   ctx.fillStyle = ground || toneColor(slot.bg || '#000000', tone);
   ctx.fillRect(0, 0, W, H);
-  if (art && slot.art && ground) drawArtMirrored(ctx, art, slot.art, W, H);
+  // 올린 이미지는 Trade In-Up 빌더와 같은 자리·크기로 (uploadArt.js) — 크리스마스 KV 자리는 선물 트리에 맞춰 더 크게 줌돼 있다
+  if (art && slot.art && ground) drawArtMirrored(ctx, art, UPLOAD_ART[slot.key] || slot.art, W, H);
   else if (art && slot.art) {
     const [ax, ay, as] = slot.art;
     ctx.imageSmoothingQuality = 'high';

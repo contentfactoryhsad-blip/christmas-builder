@@ -857,6 +857,8 @@ const TEXT_PANEL = `
 function selectAsset(id) {
   const hit = findAsset(id);
   const ticket = ++selectTicket;
+  // 누른 칸에 빨간 테두리부터 바로 — 무거운 화면 전환(캔버스·편집 패널)은 테두리가 그려진 다음 프레임에 한다
+  document.querySelectorAll('#palette .tb-cell').forEach(c => c.classList.toggle('selected', c.dataset.id === id));
   if (hit?.asset.art && !hit.asset.banner && state.bg?.assetId !== id && $('#canvas .tb-preview')) {
     const { asset } = hit;
     const urls = [previewUrl(asset), frameUrl(asset)];
@@ -864,9 +866,14 @@ function selectAsset(id) {
       .then(([bg]) => { if (ticket === selectTicket) commitSelect(id, bg); });
     return;
   }
-  commitSelect(id, null);
+  afterPaint(() => { if (ticket === selectTicket) commitSelect(id, null); });
 }
 let selectTicket = 0;
+
+/** 브라우저가 지금 바뀐 화면을 한 번 그린 다음에 fn 을 부른다 */
+function afterPaint(fn) {
+  requestAnimationFrame(() => setTimeout(fn, 0));
+}
 
 function commitSelect(id, bg) {
   // 다른 비주얼 타입(Main Theme ↔ Product Type)으로 바꾸면 2 단계(Image Edit)부터 — 새 이미지를 먼저 손보게.
@@ -2511,7 +2518,7 @@ function dragWidth(panel, handle, key, initial, min, max, side) {
 dragWidth($('#leftPanel'), $('#leftDrag'), 'tib.leftW', 320, 256, 520, 'left');
 dragWidth($('#rightPanel'), $('#rightDrag'), 'tib.rightW', 384, 300, 640, 'right');
 
-selectAsset(null);
+commitSelect(null, null); // 첫 화면은 바로 그린다
 
 // 구워 둔 에셋 목록을 읽고 팔레트를 다시 그린다 (스크립트를 다시 돌린 뒤 새로고침하면 반영)
 fetch(`${ASSET_DIR}/manifest.json`, { cache: 'no-cache' })

@@ -556,8 +556,8 @@ function handleUploadFile(file) {
       uploadAsset = {
         id: UPLOAD_ID, base: UPLOAD_ID, label: 'Uploaded Image', tone: 'light', custom: true, art: true,
         banner: { src: url, w, h }, size: [w, h], text: { value: '' }, ground: edgeColor(img),
-        // 미리보기는 에셋처럼 가운데를 2:1 로 줌 (Main Theme view 와 같은 크기) — 3000² 전체는 Edit panel 에서 본다
-        view: { x: 0.2734, y: 0.3867, w: 0.4532, h: 0.2266 },
+        // 미리보기는 블프 빌더처럼 폭을 꽉 채우고 위아래만 가운데로 자른다 (980:464 object-cover) — 3000² 전체는 Edit panel 에서 본다
+        view: { x: 0, y: (1 - 464 / 980) / 2, w: 1, h: 464 / 980 },
       };
       // 바꿔 올리면 예전 판은 버린다 — loadBanner 가 새 그림으로 다시 읽는다
       if (state.banner?.assetId === UPLOAD_ID) state.banner = null;

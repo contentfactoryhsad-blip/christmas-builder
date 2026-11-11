@@ -213,7 +213,7 @@ export function drawSlot(ctx, slot, art, cs, tone = 'light', opts = {}) {
   ctx.clearRect(0, 0, W, H);
   ctx.fillStyle = ground || toneColor(slot.bg || '#000000', tone);
   ctx.fillRect(0, 0, W, H);
-  // 올린 이미지는 Trade In-Up 빌더와 같은 자리·크기로 (uploadArt.js) — 크리스마스 KV 자리는 선물 트리에 맞춰 더 크게 줌돼 있다
+  // 올린 이미지는 블프 빌더 판 자리로 (uploadArt.js — Safe Area 가 사이즈마다 거의 다 보인다). 크리스마스 KV 자리는 선물 트리에 맞춰 더 크게 줌돼 있다
   if (art && slot.art && ground) drawArtMirrored(ctx, art, UPLOAD_ART[slot.key] || slot.art, W, H);
   else if (art && slot.art) {
     const [ax, ay, as] = slot.art;

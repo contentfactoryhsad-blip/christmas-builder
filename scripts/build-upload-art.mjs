@@ -1,26 +1,55 @@
 /**
- * UPLOAD IMAGE 배치 데이터 — Trade In-Up 빌더(10 Trade In-Up/public/lib/channelSlotData.js, Wide)의 사이즈별 art 자리를
- * 크리스마스 사이즈 key 에 맞춰 public/lib/uploadArt.js 로 뽑는다. 업로드 이미지가 두 빌더에서 같은 자리·크기로 놓이게.
- * 실행: node scripts/build-upload-art.mjs  (Trade In-Up 데이터가 바뀌면 다시 돌린다)
+ * UPLOAD IMAGE 사이즈별 자리 [x, y, 한 변] — 블프 빌더(08 black friday/lg-bf-builder)의 판을 그대로 쓴다.
+ * 3000² 가운데 1080² (Creation Guide 의 Safe Area) 가 사이즈마다 거의 다 보이게 잡힌 판이라, 업로드 이미지가 세 빌더에서 같은 자리에 놓인다.
+ *   1) 매체 사이즈: 블프 paidSlots.ts 의 S('key', w, h, [x, y, 한 변] …) — key 는 기호를 빼고 맞춘다 (google-sem ↔ sem 등 별칭 아래)
+ *   2) LG.com: 블프 lgcomSlots.ts 의 ART['kv-main'] (사이즈 id 가 key 에 들어 있으면)
+ *   3) 그래도 없으면: 이 빌더 원래 자리를 중심 그대로 두고 Safe Area 가 판 안에 들어올 만큼만 줄인다
+ * 실행: node scripts/build-upload-art.mjs  (블프 판이 바뀌면 다시 돌린다). Christmas · Trade In-Up 에 같은 스크립트가 있다
  */
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import path from 'node:path';
+
 const here = path.dirname(fileURLToPath(import.meta.url));
-const ti = (await import(pathToFileURL(path.join(here, '../../10 Trade In-Up/public/lib/channelSlotData.js')))).SLOT_DATA;
-const xm = (await import(pathToFileURL(path.join(here, '../public/lib/channelSlotData.js')))).SLOT_DATA.main;
-const norm = k => k.toLowerCase().replace(/[^a-z0-9x]/g, '');
-const byKey = new Map(), bySize = new Map();
-for (const list of Object.values(ti)) for (const s of list) if (s.art) {
-  byKey.set(norm(s.key), s.art);
-  if (!bySize.has(`${s.w}x${s.h}`)) bySize.set(`${s.w}x${s.h}`, s.art);
+const BF = path.join(here, '../../08 black friday/lg-bf-builder/src/app/components/contenttemplate');
+const DATA = path.join(here, '../public/lib/channelSlotData.js');
+const OUT = path.join(here, '../public/lib/uploadArt.js');
+
+const norm = k => k.toLowerCase().replace(/\(.*?\)/g, '').replace(/[^a-z0-9x]/g, '')
+  .replace(/^googlesem/, 'sem').replace(/^plnapenezenka/, 'pinapenezenka').replace(/^pmaxd2c/, 'pmaxd2c');
+const paid = new Map();
+for (const m of readFileSync(path.join(BF, 'paidSlots.ts'), 'utf8').matchAll(/S\('([^']+)',\s*(\d+),\s*(\d+),\s*\[([-\d.]+),\s*([-\d.]+),\s*([-\d.]+)\]/g)) {
+  paid.set(norm(m[1]), { w: +m[2], h: +m[3], art: [+m[4], +m[5], +m[6]] });
 }
-const out = {};
-let missing = [];
-for (const list of Object.values(xm)) for (const s of list) {
-  const art = byKey.get(norm(s.key)) || bySize.get(`${s.w}x${s.h}`);
-  if (art) out[s.key] = art.map(v => Math.round(v * 100) / 100); else missing.push(s.key);
+const lg = new Map();
+const lgSrc = readFileSync(path.join(BF, 'lgcomSlots.ts'), 'utf8');
+const main = lgSrc.match(/'kv-main':\s*\{(.*?)\},\n/s)[1];
+for (const m of main.matchAll(/'([^']+)':\s*\{\s*x:\s*([-\d.]+),\s*y:\s*([-\d.]+),\s*size:\s*([-\d.]+)/g)) lg.set(m[1].toLowerCase(), [+m[2], +m[3], +m[4]]);
+
+const SAFE = 1080 / 3000, LO = (1 - SAFE) / 2;
+/** 원래 자리에서 Safe Area 가 판에 들어오게 — 중심은 두고 줄인 뒤, 넘치면 판 안으로 민다 */
+function safeFit([ax, ay, as], W, H) {
+  const s = Math.min(as, W / SAFE, H / SAFE);
+  const cx = ax + as / 2, cy = ay + as / 2;
+  let sx = cx - (s * SAFE) / 2, sy = cy - (s * SAFE) / 2;
+  sx = Math.min(Math.max(sx, 0), Math.max(0, W - s * SAFE));
+  sy = Math.min(Math.max(sy, 0), Math.max(0, H - s * SAFE));
+  return [sx - s * LO, sy - s * LO, s];
 }
-writeFileSync(path.join(here, '../public/lib/uploadArt.js'),
-  `/** UPLOAD IMAGE 사이즈별 자리 [x, y, 한 변] — scripts/build-upload-art.mjs 가 Trade In-Up 데이터에서 뽑았다 (손으로 고치지 말 것). 없는 사이즈는 원래 art 를 쓴다 */\nexport const UPLOAD_ART = ${JSON.stringify(out)};\n`);
-console.log('sizes', Object.keys(out).length, 'missing', missing.join(' ') || 'none');
+
+const mod = await import(pathToFileURL(DATA));
+const sets = mod.SLOT_DATA.main ? [mod.SLOT_DATA.main] : [mod.SLOT_DATA];
+const out = {}, from = { bf: 0, lgcom: 0, fit: 0 };
+for (const set of sets) for (const list of Object.values(set)) for (const s of list) {
+  if (!s.art) continue;
+  const k = norm(s.key).replace(/2$/, '');
+  const p = paid.get(norm(s.key)) || paid.get(k);
+  const lgId = [...lg.keys()].find(id => s.key.toLowerCase().includes(id));
+  let art;
+  if (p && p.w === s.w && p.h === s.h) { art = p.art; from.bf++; }
+  else if (lgId) { art = lg.get(lgId); from.lgcom++; }
+  else { art = safeFit(s.art, s.w, s.h); from.fit++; }
+  out[s.key] = art.map(v => Math.round(v * 100) / 100);
+}
+writeFileSync(OUT, `/** UPLOAD IMAGE 사이즈별 자리 [x, y, 한 변] — scripts/build-upload-art.mjs 가 블프 빌더 판에서 뽑았다 (손으로 고치지 말 것) */\nexport const UPLOAD_ART = ${JSON.stringify(out)};\n`);
+console.log(Object.keys(out).length, 'sizes', from);

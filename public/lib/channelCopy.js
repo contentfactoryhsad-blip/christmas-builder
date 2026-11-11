@@ -12,7 +12,10 @@ import { ICON_LIST, iconSvg, splitLabel } from './icons.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
-/** Figma 자리 표시 문구 — 칸이 비어 있으면 이 글이 보인다 */
+/**
+ * Figma 문구 — 입력란이 이 글로 채워진 채 시작하고, Reset 이 이 글로 되돌린다.
+ * 칸을 비우면 그 줄은 미리보기·다운로드에서 빠진다 (BF 빌더 2026-11-11 과 같은 규칙)
+ */
 export const COPY_PLACEHOLDER = {
   eyebrow: 'Lorem ipsumdolor sit amet',
   headline: 'Lorem ipsum dolor sit ametap consectetur',
@@ -39,7 +42,7 @@ const LOGO_VARIANTS = [
 
 export function newCopyState() {
   return {
-    copy: { eyebrow: '', headline: '', subcopy: '', cta: '', disclaimer: '', disclaimerMedia: '' },
+    copy: { ...COPY_PLACEHOLDER },
     show: { eyebrow: true, subcopy: true, cta: true, disclaimer: true, logo: true, indicator: true },
     logoId: null,
     // 글자 모드 — 세일즈 배너 빌더와 같다. 버튼 이름은 글자색 기준: light = 흰 글자, dark = 검은 글자
@@ -82,6 +85,9 @@ const flagsFor = channelKey => {
   };
 };
 
+/** 기본 문구에서 하나라도 바뀌었는지 — Reset 버튼을 켤지 */
+const copyTouched = cs => Object.keys(COPY_PLACEHOLDER).some(k => (cs.copy[k] ?? '') !== COPY_PLACEHOLDER[k]);
+
 const iconStyle = cs => `${cs.icon.kind === 'none' ? 'solid' : cs.icon.kind}-${cs.icon.color}`;
 
 /** 아이콘 미리보기 칸 — Line·White 는 흰 선이라 회색 바탕에 */
@@ -90,7 +96,7 @@ const iconPreview = (id, style) => `
 
 export function renderCopyPanel(cs, channel) {
   const f = flagsFor(channel.key);
-  const touched = Object.values(cs.copy).some(v => (v ?? '').trim() !== '');
+  const touched = copyTouched(cs);
   const check = (name, on) => `<input type="checkbox" class="cc-check" data-cc-show="${name}"${on ? ' checked' : ''} />`;
   const style = iconStyle(cs);
   const kind = cs.icon.kind === 'line' ? 'line' : 'solid';
@@ -114,7 +120,7 @@ export function renderCopyPanel(cs, channel) {
 
     ${FIELDS.map(fd => {
       const off = fd.toggle ? !cs.show[fd.toggle] : false;
-      const attrs = `data-copy="${fd.key}" placeholder="${esc(COPY_PLACEHOLDER[fd.key])}"${off ? ' disabled' : ''}`;
+      const attrs = `data-copy="${fd.key}"${off ? ' disabled' : ''}`;
       return `
       <label class="cc-field">
         <span class="cc-label-row">
@@ -136,7 +142,7 @@ export function renderCopyPanel(cs, channel) {
       ].map(d => `
         <label class="cc-sub-field${d.on ? '' : ' off'}">
           <span class="cc-label-row"><span class="cc-small">${d.label}</span>${d.hint ? `<span class="cc-hint">${esc(d.hint)}</span>` : ''}</span>
-          <input type="text" class="cc-input" data-copy="${d.key}" value="${esc(cs.copy[d.key])}" placeholder="${esc(COPY_PLACEHOLDER[d.key])}"${d.max ? ` maxlength="${d.max}"` : ''}${!cs.show.disclaimer || !d.on ? ' disabled' : ''} />
+          <input type="text" class="cc-input" data-copy="${d.key}" value="${esc(cs.copy[d.key])}"${d.max ? ` maxlength="${d.max}"` : ''}${!cs.show.disclaimer || !d.on ? ' disabled' : ''} />
         </label>`).join('')}
     </div>
 
@@ -241,7 +247,7 @@ function openCombo(root, cs, i, rerender) {
 export function bindCopyPanel(root, cs, rerender, onInput = () => {}) {
   const syncReset = () => {
     const btn = root.querySelector('[data-copy-reset]');
-    if (btn) btn.disabled = !Object.values(cs.copy).some(v => (v ?? '').trim() !== '');
+    if (btn) btn.disabled = !copyTouched(cs);
   };
   root.addEventListener('input', e => {
     const el = e.target;
@@ -280,7 +286,7 @@ export function bindCopyPanel(root, cs, rerender, onInput = () => {}) {
       const open = root.querySelector(`[data-combo="${t.dataset.comboOpen}"] .cc-combo-pop`);
       if (open) open.remove(); else openCombo(root, cs, Number(t.dataset.comboOpen), rerender);
     } else if (t.hasAttribute('data-copy-reset')) {
-      Object.keys(cs.copy).forEach(k => { cs.copy[k] = ''; });
+      Object.assign(cs.copy, COPY_PLACEHOLDER);
       rerender();
     }
   });

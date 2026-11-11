@@ -12,6 +12,7 @@
  */
 import { SLOT_DATA } from './channelSlotData.js';
 import { ICON_LIST, iconSvg, splitLabel } from './icons.js';
+import { COPY_PLACEHOLDER } from './channelCopy.js';
 
 /*
   아이콘 줄 — LG.com 히어로 두 사이즈(ST0001 1920×720 · 720×960)에만. 자리는 블프 빌더 lgcomSlots.ts 와 같다.
@@ -160,7 +161,11 @@ export function drawSlot(ctx, slot, art, cs, tone = 'light', opts = {}) {
   if (NO_COPY.has(slot.key)) slot = { ...slot, logo: null, rows: [], cta: null, disc: null };
   const { w: W, h: H } = slot;
   const show = cs.show;
-  const val = k => (cs.copy[k] ?? '').trim() || PLACEHOLDER[k];
+  // 비운 칸은 그 줄을 뺀다. 기본 문구 그대로면 Figma 의 긴 자리 표시 문구로 그려 사이즈별 줄바꿈을 Figma 처럼 둔다
+  const val = k => {
+    const v = (cs.copy[k] ?? '').trim();
+    return v && v === COPY_PLACEHOLDER[k] ? PLACEHOLDER[k] : v;
+  };
   // 글자 모드 — Light 는 흰 글자, Dark 는 검은 글자 (카피·동그란 CTA·Disclaimer)
   const ink = cs.textMode === 'dark' ? '#000' : '#fff';
   ctx.save();
@@ -200,7 +205,9 @@ export function drawSlot(ctx, slot, art, cs, tone = 'light', opts = {}) {
   ctx.textBaseline = 'top';
   let shift = 0, lastEnd = null, lastFigmaEnd = null;
   rows.forEach(r => {
-    if (!on[r.k]) return;
+    // 꺼졌거나 비운 줄은 빼고 아래 줄을 당긴다 — 그 줄의 상자와 위 간격만큼 (BF 와 같은 오토레이아웃).
+    // 가운데 줄(Headline)이 빠져도 다음 줄은 빠진 줄 아래의 Figma 간격으로 붙는다
+    if (!on[r.k] || !val(r.k)) { if (lastEnd != null) lastFigmaEnd = r.y + r.h; return; }
     const [face, weight] = FACE[r.k];
     ctx.font = `${weight} ${r.sz}px ${face}`;
     ctx.textAlign = r.al === 'C' ? 'center' : r.al === 'R' ? 'right' : 'left';
@@ -237,7 +244,7 @@ export function drawSlot(ctx, slot, art, cs, tone = 'light', opts = {}) {
     ctx.moveTo(cx - a, cy); ctx.lineTo(cx + a, cy);
     ctx.moveTo(cx + a * 0.35, cy - a * 0.65); ctx.lineTo(cx + a, cy); ctx.lineTo(cx + a * 0.35, cy + a * 0.65);
     ctx.stroke();
-  } else if (!opts.imageOnly && slot.cta && show.cta) {
+  } else if (!opts.imageOnly && slot.cta && show.cta && val('cta')) { // CTA 를 비우면 버튼째 숨긴다 (동그란 화살표는 그대로)
     const b = slot.cta;
     const [fx, fy, fw, fh] = b.b;
     ctx.font = `400 ${b.sz}px ${TEXT}`;
@@ -260,13 +267,14 @@ export function drawSlot(ctx, slot, art, cs, tone = 'light', opts = {}) {
   if (ICON_ROWS[slot.key] && cs.icon && cs.icon.kind !== 'none') drawIconRow(ctx, ICON_ROWS[slot.key], cs.icon);
 
   // Disclaimer — 바닥 기준, 흰 빛과 검은 그림자 두 겹
-  if (slot.disc && show.disclaimer) {
+  const discText = slot.disc ? val(slot.label === 'LG.com' ? 'disclaimer' : 'disclaimerMedia') : '';
+  if (slot.disc && show.disclaimer && discText) {
     const d = slot.disc;
     ctx.font = `400 ${d.sz}px ${TEXT}`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'bottom';
     // LG.com 사이즈는 Copy 패널의 LG.com 칸, 나머지 매체는 Media 칸
-    const lines = wrap(ctx, val(slot.label === 'LG.com' ? 'disclaimer' : 'disclaimerMedia'), d.w);
+    const lines = wrap(ctx, discText, d.w);
     const lh = d.sz * 1.2;
     const draw = () => lines.forEach((l, n) => ctx.fillText(l, d.x, H - d.bottom - (lines.length - 1 - n) * lh));
     // 그림자 흐림은 변환을 안 따라가서 줄여 그리는 배율만큼 곱한다

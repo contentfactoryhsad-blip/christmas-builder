@@ -2435,7 +2435,9 @@ async function downloadSlots() {
   const zip = new JSZip();
   const btn = $('#download');
   const label = $('#downloadLabel');
-  const total = keys.reduce((n, key) => n + slotsForChannel(key, board).length, 0);
+  // META 는 로고 없는 판을 한 장씩 더 담는다 (세일즈 배너 빌더와 같은 규칙 — 파일명 끝 -no-logo)
+  const isMeta = key => key === 'meta';
+  const total = keys.reduce((n, key) => n + slotsForChannel(key, board).length * (isMeta(key) ? 2 : 1), 0);
   let done = 0;
   exporting = true;
   btn.disabled = true;
@@ -2444,15 +2446,18 @@ async function downloadSlots() {
   try {
     for (const key of keys) {
       const folder = CHANNEL_ROWS.flat().find(c => c.key === key)?.label || key;
-      for (const sl of slotsForChannel(key, board)) {
-        const c = document.createElement('canvas');
-        c.width = sl.w;
-        c.height = sl.h;
-        drawSlot(c.getContext('2d'), sl, art, state.copy, hit.asset.tone, { imageOnly: key === 'lg-com' });
-        const blob = await new Promise(r => c.toBlob(r, 'image/png'));
-        (keys.length > 1 ? zip.folder(folder) : zip).file(`${sl.key}.png`, blob);
-        pngs.push({ name: thumbName(sl.key), blob });
-        label.textContent = `${++done} / ${total}`;
+      for (const base of slotsForChannel(key, board)) {
+        const variants = isMeta(key) ? [[base, base.key], [{ ...base, logo: null }, `${base.key}-no-logo`]] : [[base, base.key]];
+        for (const [sl, name] of variants) {
+          const c = document.createElement('canvas');
+          c.width = sl.w;
+          c.height = sl.h;
+          drawSlot(c.getContext('2d'), sl, art, state.copy, hit.asset.tone, { imageOnly: key === 'lg-com' });
+          const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+          (keys.length > 1 ? zip.folder(folder) : zip).file(`${name}.png`, blob);
+          pngs.push({ name: thumbName(name), blob });
+          label.textContent = `${++done} / ${total}`;
+        }
       }
     }
     saveBlob(await zip.generateAsync({ type: 'blob' }), `${fileStem()}-${state.channel}.zip`);

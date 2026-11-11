@@ -76,6 +76,8 @@ a.tb-pill:not(.outline-brand):hover { border-color: var(--gray-400); }
 .tb-rail-row:hover { background: var(--gray-50); color: var(--gray-900); }
 .tb-rail-row.active { color: var(--brand); background: rgb(253 49 46 / .08); }
 .tb-rail-row svg { flex-shrink: 0; }
+.tb-rail-row[aria-disabled="true"] { opacity: .4; cursor: default; }
+.tb-rail-row[aria-disabled="true"]:hover { background: none; color: inherit; }
 .tb-rail-row span { font-size: 14px; font-weight: 500; opacity: 0; transition: opacity .15s; }
 .tb-rail:hover .tb-rail-row span { opacity: 1; }
 

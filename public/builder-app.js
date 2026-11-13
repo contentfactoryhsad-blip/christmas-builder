@@ -700,21 +700,20 @@ function renderSlots() {
       return;
     }
     const dpr = Math.min(2, window.devicePixelRatio || 1);
-    // LG.com 히어로 두 장(1920×720 · 720×960)은 같은 높이로 한 줄에 나란히 — 미리보기 폭에 꽉 차게
-    const avail = Math.min(1200, box.clientWidth || 900);
-    const heroH = Math.min(720, (avail - 16) / (1920 / 720 + 720 / 960));
-    const keys = `${board}|${dpr}|${Math.round(heroH)}|${slots.map(sl => sl.key).join()}`;
+    // 미리보기 크기는 블프 빌더 PreviewGallery 와 같다 — 긴 변 360 (LG.com PC 히어로 1920×720 만 720), 폭을 넘지 않게. 줄은 끊지 않고 그대로 흘린다
+    const avail = Math.min(1920, box.clientWidth || 900);
+    const keys = `${board}|${dpr}|${Math.round(avail)}|${slots.map(sl => sl.key).join()}`;
     if (box.dataset.keys !== keys) {
       box.dataset.keys = keys;
       box.innerHTML = slots.map((sl, i) => {
-        const hero = sl.key === HERO_PC || sl.key === HERO_MO;
-        const k = hero ? heroH / sl.h : Math.min(1, 360 / Math.max(sl.w, sl.h));
+        const edge = sl.key === HERO_PC ? 720 : 360;
+        const k = Math.min(1, edge / Math.max(sl.w, sl.h), avail / sl.w);
         const head = state.channel === 'all' && sl.label !== slots[i - 1]?.label ? `<p class="tb-slots-group">${esc(sl.label)}</p>` : '';
         return `${head}
         <figure class="tb-slot">
           <canvas width="${Math.round(sl.w * k * dpr)}" height="${Math.round(sl.h * k * dpr)}" data-slot="${sl.key}" style="width:${sl.w * k}px"></canvas>
           <figcaption>${sl.key}</figcaption>
-        </figure>${sl.key === HERO_MO ? '<div class="tb-slots-break"></div>' : ''}`;
+        </figure>`;
       }).join('');
     }
     const art = hit.asset.banner

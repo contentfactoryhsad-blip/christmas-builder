@@ -463,7 +463,7 @@ a.tb-pill:not(.outline-brand):hover { border-color: var(--gray-400); }
 .cc-reset:disabled { opacity: .4; pointer-events: none; }
 
 /* 매체 사이즈 미리보기 — 매체 알약 아래, 원래 크기 비율대로 줄여서 줄 바꿈 배치 */
-.tb-slots { margin: 24px auto 0; max-width: 1200px; display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 20px 16px; }
+.tb-slots { margin: 24px auto 0; max-width: 1920px; display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 20px 16px; }
 .tb-slots[hidden] { display: none; }
 .tb-slot { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .tb-slot canvas { display: block; height: auto; border-radius: 0; box-shadow: 0 1px 3px rgb(0 0 0 / .12); background: #fff; }
@@ -569,4 +569,3 @@ a.tb-pill:not(.outline-brand):hover { border-color: var(--gray-400); }
 .tb-step-btn:active { background: rgb(253 49 46 / .08); }
 
 /* LG.com 히어로 두 장 뒤에서 줄을 끊는다 — 둘만 한 줄에 */
-.tb-slots-break { flex-basis: 100%; height: 0; }

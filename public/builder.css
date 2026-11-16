@@ -51,7 +51,8 @@ a.tb-pill:not(.outline-brand):hover { border-color: var(--gray-400); }
 .tb-step.active .tb-step-num { border-style: dashed; border-color: var(--brand); color: var(--brand); }
 .tb-step.active .tb-step-label { color: var(--brand); font-weight: 500; }
 .tb-step-line { height: 1px; width: clamp(10px, 4vw, 110px); margin: 0 16px; background: var(--gray-300); flex-shrink: 1; }
-@media (max-width: 1279px) {
+/* 헤더 오른쪽에 국가 배지(lib/countryPicker.css)가 붙어서 설명 글자는 1699px 이하에서 숨긴다 */
+@media (max-width: 1699px) {
   .tb-step-text { display: none; }
   .tb-step-line { margin: 0 8px; }
 }

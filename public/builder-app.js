@@ -21,9 +21,13 @@ import { importFromUrl, importFromFile, editProduct } from './lib/productImportF
 import { DEFAULT_FX, cloneFx, createBackground, drawComposite } from './lib/composite.js';
 import { newCopyState, renderCopyPanel, bindCopyPanel } from './lib/channelCopy.js';
 import { slotsForChannel, drawSlot, logosReady, onIconLoad } from './lib/channelSlots.js';
-import { captureHubCountry, logUsage, makeThumb, thumbName, newOutputId, uploadOutput } from './lib/usageClient.js';
+import { logUsage, makeThumb, thumbName, newOutputId, uploadOutput } from './lib/usageClient.js';
 
+import { captureHubCountry, initCountryPicker } from './lib/countryPicker.js';
+// 허브에서 넘어온 국가(?hub_country=)를 저장하고 주소에서 지운다.
+// 허브를 거치지 않고 바로 들어왔으면 첫 화면에서 허브와 같은 팝업으로 묻는다 (블프·세일즈 빌더와 같다)
 captureHubCountry();
+initCountryPicker(document.querySelector('.header-actions'));
 import { orderQuad, warpInfill, colorField, detectObjects, adjustBackground, glowLayer } from './lib/infill.js';
 
 /**

@@ -4,32 +4,13 @@
  * 관리자 화면(stats.html)이 읽는다. 어느 단계든 실패하면 조용히 넘어간다 — 다운로드에는 영향이 없다.
  */
 
-/*
-  Builder Hub 에서 고른 국가 — 허브 카드 링크가 ?hub_country=ASIA/KR 를 붙여 보낸다.
-  첫 화면에서 받아 이 탭에만(sessionStorage) 두고 주소창에서는 지운다.
-*/
-const HUB_KEY = 'builderHub.country';
-export function captureHubCountry() {
-  try {
-    const url = new URL(window.location.href);
-    const country = url.searchParams.get('hub_country')?.trim();
-    if (!country) return;
-    sessionStorage.setItem(HUB_KEY, JSON.stringify({ country }));
-    url.searchParams.delete('hub_country');
-    window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
-  } catch { /* 저장 못 해도 빌더는 그대로 — 기록만 IP 추정으로 남는다 */ }
-}
-function hubCountry() {
-  try {
-    const v = JSON.parse(sessionStorage.getItem(HUB_KEY) ?? 'null');
-    return v && typeof v.country === 'string' && v.country ? v.country : null;
-  } catch { return null; }
-}
+// 국가(법인) — 허브에서 넘어왔거나 첫 화면 팝업에서 고른 값 (countryPicker.js)
+import { getHubCountry } from './countryPicker.js';
 
 /** 한 줄 남긴다 — { item, detail, files, output } */
 export async function logUsage(rec) {
   try {
-    const country = hubCountry();
+    const country = getHubCountry()?.country;
     await fetch('/api/log-usage', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

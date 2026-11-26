@@ -182,7 +182,7 @@ const slotLabel = i => `${KIND_LABEL[state.slots[i].kind]} ${kindNo(i)}`;
 
 /** 매체 — 두 줄로 놓는다: 윗줄 ALL·LG.com·주요 매체, 아랫줄 제휴 매체 (ALL = 전부). 사이즈 정의는 아직 없다 */
 const CHANNEL_ROWS = [
-  ['ALL', 'LG.com', 'Criteo', 'DV360', 'Pmax', 'META', 'Google SEM', 'Twitch', 'Quantcast', 'ECRM'],
+  ['ALL', 'LG.com', 'ThinQ', 'Criteo', 'DV360', 'Pmax', 'META', 'Google SEM', 'Twitch', 'Quantcast', 'ECRM'],
   ['Rakuten', 'Venngo', 'Perkopolis', 'Awin', 'Data Audience', 'Vase kupony', 'Plna penezenka', 'Tipli', 'Taiwan Affiliate', 'Telus Health'],
 ].map(row => row.map(label => ({ key: label.toLowerCase().replace(/[^a-z0-9]+/g, '-'), label })));
 

@@ -24,9 +24,10 @@ const ICON_ROWS = {
   'lgcom-ST0001-mo-720x960': { x: 34, y: 762, w: 510, h: 72 },
 };
 /*
-  카피 없는 사이즈 — 로고·카피·CTA·고지문 없이 배경(+그라데이션)만. 세일즈 배너 빌더와 같은 판들 (Figma 에서도 카피 인스턴스를 숨겼다, 2026-11-02)
+  카피 없는 사이즈 — 로고·카피·CTA·고지문 없이 배경(+그라데이션)만. 세일즈 배너 빌더와 같은 판들 (Figma 에서도 카피 인스턴스를 숨겼다, 2026-11-02).
+  ThinQ 는 블프 빌더처럼 아트만 나간다 (2026-11-26)
 */
-const NO_COPY = new Set(['telus-health-1080x720', 'telus-health-1000x1000', 'plna-penezenka-330x135', 'taiwan-affiliate-1500x1000']);
+const NO_COPY = new Set(['telus-health-1080x720', 'telus-health-1000x1000', 'plna-penezenka-330x135', 'taiwan-affiliate-1500x1000', 'thinq-1000x800']);
 const iconCache = new Map();
 let iconRedraw = () => {};
 /** 아이콘 SVG 를 처음 읽으면 다시 그리게 — builder-app 이 renderSlots 를 넘긴다 */
